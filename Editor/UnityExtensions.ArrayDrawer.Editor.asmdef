@@ -1,0 +1,12 @@
+{
+    "name": "UnityExtensions.ArrayDrawer.Editor",
+    "references": [
+        "UnityExtensions.ArrayDrawer"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false
+}

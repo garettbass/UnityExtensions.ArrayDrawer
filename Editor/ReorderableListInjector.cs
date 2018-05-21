@@ -17,40 +17,100 @@ namespace UnityExtensions
         [InitializeOnLoadMethod]
         private static void InitializeOnLoad()
         {
-
             var start = DateTime.Now;
+
+            var ScriptAttributeUtility =
+                typeof(PropertyDrawer)
+                .Assembly
+                .GetType("UnityEditor.ScriptAttributeUtility");
+
+            var GetDrawerTypeForType =
+                ScriptAttributeUtility
+                .GetMethod(
+                    "GetDrawerTypeForType",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Static
+                );
+
+            // ensure initialization of
+            // ScriptAttributeUtility.s_DrawerTypeForType
+            GetDrawerTypeForType.Invoke(null, new object[] { typeof(object) });
+
+            var DrawerTypeForType =
+                (IDictionary)
+                ScriptAttributeUtility
+                .GetField(
+                    "s_DrawerTypeForType",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Static
+                )
+                .GetValue(null);
+
+            var DrawerKeySet =
+                typeof(PropertyDrawer)
+                .Assembly
+                .GetType("UnityEditor.ScriptAttributeUtility+DrawerKeySet");
+
+            var DrawerKeySet_drawer =
+                DrawerKeySet
+                .GetField(
+                    "drawer",
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance
+                );
+
+            var DrawerKeySet_type =
+                DrawerKeySet
+                .GetField(
+                    "type",
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance
+                );
+
+            var drawerType = typeof(ReorderableListDrawer);
+            var drawerKeySet = Activator.CreateInstance(DrawerKeySet);
+            DrawerKeySet_drawer.SetValue(drawerKeySet, drawerType);
+            DrawerKeySet_type.SetValue(drawerKeySet, typeof(IList));
+
+            DrawerTypeForType.Add(typeof(List<>), drawerKeySet);
 
             var serializableTypes =
                 AppDomain
                 .CurrentDomain
                 .GetAssemblies()
                 .SelectMany(GetTypes)
-                .Where(IsSerializable)
-                .ToArray();
+                .Where(IsSerializable);
 
             foreach (var serializableType in serializableTypes)
             {
                 var arrayType = serializableType.MakeArrayType();
+                if (DrawerTypeForType.Contains(arrayType))
+                    continue;
 
+                DrawerTypeForType.Add(arrayType, drawerKeySet);
             }
 
             var elapsedMs = (DateTime.Now - start).TotalMilliseconds;
 
             Debug.LogFormat("ReorderableListInjector took {0} ms", elapsedMs);
-
-            Debug.Log(
-                string.Join(
-                    "\n",
-                    serializableTypes.Select(t => t.FullName).ToArray()
-                )
-            );
         }
 
         private static bool IsSerializable(Type type)
         {
             return
                 type.IsPrimitive ||
-                HasSerializableAttribute(type);
+                HasSerializableAttribute(type) ||
+                IsPublicUnityEngineValueType(type);
+        }
+
+        private static bool IsPublicUnityEngineValueType(Type type)
+        {
+            return
+                type.IsPublic &&
+                type.IsValueType &&
+                type.FullName.StartsWith("UnityEngine.");
         }
 
         private static bool HasSerializableAttribute(Type type)
@@ -77,28 +137,6 @@ namespace UnityExtensions
                 return Type.EmptyTypes;
             }
         }
-
-        //======================================================================
-
-        private static readonly Type
-        s_ScriptAttributeUtility =
-            typeof(PropertyDrawer)
-            .Assembly
-            .GetType("UnityEditor.ScriptAttributeUtility");
-
-        private static readonly Type
-        s_DrawerKeySet =
-            s_ScriptAttributeUtility
-            .GetNestedType("UnityEditor.ScriptAttributeUtility+DrawerKeySet");
-
-        private static readonly FieldInfo
-        s_DrawerTypeForType =
-            s_ScriptAttributeUtility
-            .GetField(
-                "s_DrawerTypeForType",
-                BindingFlags.NonPublic |
-                BindingFlags.Static
-            );
 
     }
 

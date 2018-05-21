@@ -16,5 +16,22 @@ MonoBehaviour:
   - a
   - b
   - c
-  structArray: []
-  subassetArray: []
+  structArray:
+  - text: 
+    number: 0
+    option: 0
+  subassetArray:
+  - {fileID: 114088678537567340}
+--- !u!114 &114088678537567340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68eaeeeffa35541b780d711228ea7923, type: 3}
+  m_Name: SampleSubassetWithBoolArray
+  m_EditorClassIdentifier: 
+  boolValue: 0
+  boolArray: 

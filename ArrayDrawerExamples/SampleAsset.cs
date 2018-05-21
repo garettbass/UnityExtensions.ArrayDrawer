@@ -9,13 +9,13 @@ namespace UnityExtensions.ArrayDrawerExamples
     public class SampleAsset : ScriptableObject
     {
 
-        [ReorderableList]
+        //[ReorderableList]
         public List<int> intList = new List<int> { 1, 2, 3 };
 
-        [ReorderableList]
+        //[ReorderableList]
         public string[] stringArray = new[] { "a", "b", "c" };
 
-        [ReorderableList]
+        //[ReorderableList]
         public SampleStruct[] structArray;
 
         [ReorderableList(subassets: true)]

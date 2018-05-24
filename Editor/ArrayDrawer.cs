@@ -8,8 +8,6 @@ using UnityEngine;
 namespace UnityExtensions
 {
 
-    // [CustomPropertyDrawer(typeof(ArrayDrawerAttribute))]
-    // [CustomPropertyDrawer(typeof(SubassetsAttribute))]
     public class ArrayDrawer : ArrayDrawerBase
     {
 

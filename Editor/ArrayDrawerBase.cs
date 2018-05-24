@@ -17,13 +17,15 @@ namespace UnityExtensions
 
         public sealed override bool CanCacheInspectorGUI()
         {
-            InjectArrayDrawer();
+            if (!_didInjectArrayDrawer)
+                InjectArrayDrawer();
             return false;
         }
 
         public sealed override float GetHeight()
         {
-            InjectArrayDrawer();
+            if (!_didInjectArrayDrawer)
+                InjectArrayDrawer();
             return 0;
         }
 
@@ -31,17 +33,22 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
+        private bool _didInjectArrayDrawer;
+
         private void InjectArrayDrawer()
         {
+            _didInjectArrayDrawer = true;
+
             var propertyHandler = GetPropertyHandler();
 
             var propertyDrawer = GetPropertyDrawer(propertyHandler);
 
-            Debug.Assert(propertyDrawer == null);
+            if (propertyDrawer == null)
+            {
+                propertyDrawer = new ArrayDrawerAdapter((ArrayDrawer)this);
 
-            propertyDrawer = new ArrayDrawerAdapter((ArrayDrawer)this);
-
-            SetPropertyDrawer(propertyHandler, propertyDrawer);
+                SetPropertyDrawer(propertyHandler, propertyDrawer);
+            }
         }
 
         //======================================================================
@@ -97,8 +104,6 @@ namespace UnityExtensions
                 if (index < 0)
                     continue;
 
-                decoratorDrawers[index] = NullDrawer.Instance;
-
                 return propertyHandler;
             }
 
@@ -145,28 +150,6 @@ namespace UnityExtensions
         {
             s_PropertyHandler_PropertyDrawer
             .SetValue(propertyHandler, propertyDrawer);
-        }
-
-        //======================================================================
-
-        private class NullDrawer : DecoratorDrawer
-        {
-            public static readonly DecoratorDrawer Instance = new NullDrawer();
-
-            public sealed override bool CanCacheInspectorGUI()
-            {
-                return true;
-            }
-
-            public sealed override float GetHeight()
-            {
-                return 0;
-            }
-
-            public sealed override void OnGUI(Rect position)
-            {
-                //EditorGUI.DrawRect(position, Color.magenta);
-            }
         }
 
     }

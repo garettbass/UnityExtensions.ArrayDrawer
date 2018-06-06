@@ -41,7 +41,9 @@ namespace UnityExtensions
             elementHeightCallback = ElementHeightCallback;
             drawElementCallback = DrawElementCallback;
             drawElementBackgroundCallback = DrawElementBackgroundCallback;
+#if UNITY_2018_1_OR_NEWER
             drawNoneElementCallback = DrawEmptyElementCallback;
+#endif // UNITY_2018_1_OR_NEWER
         }
 
         //----------------------------------------------------------------------

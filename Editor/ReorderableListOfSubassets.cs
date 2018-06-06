@@ -28,14 +28,18 @@ namespace UnityExtensions
 
         public ReorderableListOfSubassets(
             SerializedProperty property,
+            Type listType,
+            Type elementType,
             Type[] subassetTypes)
-        : base(property)
+        : base(property, listType, elementType)
         {
             m_SubassetTypes = subassetTypes;
 
             m_UseFullSubassetTypeNames = SubassetTypeNamesAreAmbiguous();
 
             onRemoveCallback = OnRemoveCallback;
+
+            onCanAddCallback = OnCanAddCallback;
 
             if (m_SubassetTypes.Length == 1)
                 onAddCallback = OnAddCallback;
@@ -56,7 +60,7 @@ namespace UnityExtensions
 
         protected override float GetElementHeight(
             SerializedProperty element,
-            int index)
+            int elementIndex)
         {
             var subasset = element.objectReferenceValue;
             if (subasset == null)
@@ -64,17 +68,21 @@ namespace UnityExtensions
 
             var serializedObject = GetSerializedObjectFromCache(subasset);
 
-            var count = 0;
+            var height = m_SubassetTypes.Length > 1 ? headerHeight : 0f;
+
+            height += GetSubassetHeight(serializedObject);
+
+            return Mathf.Max(height, elementHeight);
+        }
+
+        private float GetSubassetHeight(
+            SerializedObject serializedObject)
+        {
             var height = 0f;
+
+            var count = m_SubassetTypes.Length > 1 ? 1 : 0;
             var spacing = EditorGUIUtility.standardVerticalSpacing;
-
-            if (m_SubassetTypes.Length > 1)
-            {
-                count = 1;
-                height += headerHeight;
-            }
-
-            foreach (var property in EnumerateProperties(serializedObject))
+            foreach (var property in EnumerateChildProperties(serializedObject))
             {
                 if (count++ > 0)
                     height += spacing;
@@ -96,19 +104,12 @@ namespace UnityExtensions
         {
             var subasset = element.objectReferenceValue;
             if (subasset == null)
-            {
                 return;
-            }
 
             var serializedObject = GetSerializedObjectFromCache(subasset);
-            serializedObject.Update();
-
-            var count = 0;
-            var spacing = EditorGUIUtility.standardVerticalSpacing;
 
             if (m_SubassetTypes.Length > 1)
             {
-                count = 1;
                 DrawElementHeader(
                     position,
                     subasset,
@@ -118,7 +119,20 @@ namespace UnityExtensions
                 position.y += headerHeight;
             }
 
-            foreach (var property in EnumerateProperties(serializedObject))
+            position.xMin += 12;
+
+            DrawSubasset(position, serializedObject);
+        }
+
+        private void DrawSubasset(
+            Rect position,
+            SerializedObject serializedObject)
+        {
+            serializedObject.Update();
+
+            var count = m_SubassetTypes.Length > 1 ? 1 : 0;
+            var spacing = EditorGUIUtility.standardVerticalSpacing;
+            foreach (var property in EnumerateChildProperties(serializedObject))
             {
                 if (count++ > 0)
                     position.y += spacing;
@@ -244,6 +258,11 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
+        private bool OnCanAddCallback(ReorderableList list)
+        {
+            return m_SubassetTypes.Length > 0;
+        }
+
         private void OnAddCallback(ReorderableList list)
         {
             AddSubasset(m_SubassetTypes[0]);
@@ -349,7 +368,7 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
-        private static IEnumerable<SerializedProperty> EnumerateProperties(
+        private static IEnumerable<SerializedProperty> EnumerateChildProperties(
             SerializedObject serializedObject)
         {
             var property = serializedObject.GetIterator();

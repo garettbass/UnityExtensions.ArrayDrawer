@@ -9,13 +9,13 @@ namespace UnityExtensions
     public class ReorderableListAttribute : PropertyAttribute
     {
 
-        public readonly bool subassets;
+        public readonly bool elementsAreSubassets;
 
         public ReorderableListAttribute() { }
 
-        public ReorderableListAttribute(bool subassets)
+        public ReorderableListAttribute(bool elementsAreSubassets)
         {
-            this.subassets = subassets;
+            this.elementsAreSubassets = elementsAreSubassets;
         }
 
     }

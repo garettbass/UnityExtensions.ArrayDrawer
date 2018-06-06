@@ -22,7 +22,9 @@ namespace UnityExtensions
             SerializedProperty property,
             GUIContent label)
         {
-            ResolveReorderableList(property);
+            if (m_ReorderableList == null)
+                CreateReorderableList(property);
+
             return m_ReorderableList.GetHeight(label);
         }
 
@@ -38,11 +40,8 @@ namespace UnityExtensions
 
         private ReorderableListOfValues m_ReorderableList;
 
-        private void ResolveReorderableList(SerializedProperty property)
+        private void CreateReorderableList(SerializedProperty property)
         {
-            if (m_ReorderableList != null)
-                return;
-
             var listType = fieldInfo.FieldType;
 
             var elementType = GetArrayOrListElementType(listType);
@@ -66,13 +65,14 @@ namespace UnityExtensions
                 elementType == typeof(RectInt) ||
                 elementType == typeof(BoundsInt);
 
-            // TODO: if the field has a PropertyAttribute associated with
-            // another PropertyDrawer, then the element should also be
-            // regarded as a 'value'.
-
             if (elementIsValue)
             {
-                m_ReorderableList = new ReorderableListOfValues(property);
+                m_ReorderableList =
+                    new ReorderableListOfValues(
+                        property,
+                        listType,
+                        elementType
+                    );
                 return;
             }
 
@@ -84,13 +84,12 @@ namespace UnityExtensions
             {
                 var reorderableListAttribute = (ReorderableListAttribute)attribute;
 
-                var elementIsSubasset =
+                var elementsAreSubassets =
                     elementIsScriptableObject &&
-                    reorderableListAttribute.subassets;
+                    reorderableListAttribute.elementsAreSubassets;
 
-                if (elementIsSubasset)
+                if (elementsAreSubassets)
                 {
-
                     var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
                     var types = assemblies.SelectMany(a => a.GetTypes());
@@ -98,6 +97,7 @@ namespace UnityExtensions
                     var subassetTypes =
                         types.Where(t =>
                             t.IsAbstract == false &&
+                            t.IsGenericTypeDefinition == false &&
                             elementType.IsAssignableFrom(t)
                         )
                         .ToArray();
@@ -105,42 +105,57 @@ namespace UnityExtensions
                     m_ReorderableList =
                         new ReorderableListOfSubassets(
                             property,
+                            listType,
+                            elementType,
                             subassetTypes
                         );
                     return;
                 }
                 else
                 {
-                    m_ReorderableList = new ReorderableListOfValues(property);
+                    m_ReorderableList =
+                        new ReorderableListOfValues(
+                            property,
+                            listType,
+                            elementType
+                        );
                     return;
                 }
             }
 
-            var elementIsStruct =
-                elementType.IsValueType &&
-                elementType.IsEnum == false &&
-                elementType.IsPrimitive == false;
-
-            var elementIsClass =
-                elementType.IsClass;
-
-            if (elementIsStruct || elementIsClass)
+            var elementPropertyDrawerType = GetDrawerTypeForType(elementType);
+            if (elementPropertyDrawerType == null)
             {
-                m_ReorderableList = new ReorderableListOfStructures(property);
-                return;
+                var elementIsStruct =
+                    elementType.IsValueType &&
+                    elementType.IsEnum == false &&
+                    elementType.IsPrimitive == false;
+
+                var elementIsClass =
+                    elementType.IsClass;
+
+                if (elementIsStruct || elementIsClass)
+                {
+                    m_ReorderableList =
+                        new ReorderableListOfStructures(
+                            property,
+                            listType,
+                            elementType
+                        );
+                    return;
+                }
             }
 
-            m_ReorderableList = new ReorderableListOfValues(property);
+            m_ReorderableList =
+                new ReorderableListOfValues(
+                    property,
+                    listType,
+                    elementType
+                );
 
         }
 
         //======================================================================
-
-        private static readonly Type
-        s_EditorExtensionMethods =
-            typeof(PropertyDrawer)
-            .Assembly
-            .GetType("UnityEditor.EditorExtensionMethods");
 
         private delegate Type GetArrayOrListElementTypeDelegate(Type listType);
 
@@ -150,9 +165,31 @@ namespace UnityExtensions
             Delegate.CreateDelegate(
                 typeof(GetArrayOrListElementTypeDelegate),
                 null,
-                s_EditorExtensionMethods
+                typeof(PropertyDrawer)
+                .Assembly
+                .GetType("UnityEditor.EditorExtensionMethods")
                 .GetMethod(
                     "GetArrayOrListElementType",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Static
+                )
+            );
+
+        //======================================================================
+
+        private delegate Type GetDrawerTypeForTypeDelegate(Type type);
+
+        private static readonly GetDrawerTypeForTypeDelegate
+        GetDrawerTypeForType =
+            (GetDrawerTypeForTypeDelegate)
+            Delegate.CreateDelegate(
+                typeof(GetDrawerTypeForTypeDelegate),
+                null,
+                typeof(PropertyDrawer)
+                .Assembly
+                .GetType("UnityEditor.ScriptAttributeUtility")
+                .GetMethod(
+                    "GetDrawerTypeForType",
                     BindingFlags.NonPublic |
                     BindingFlags.Static
                 )

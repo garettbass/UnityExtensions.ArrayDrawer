@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,15 +15,18 @@ namespace UnityExtensions
     internal class ReorderableListOfStructures : ReorderableListOfValues
     {
 
-        public ReorderableListOfStructures(SerializedProperty property)
-        : base(property)
+        public ReorderableListOfStructures(
+            SerializedProperty property,
+            Type listType,
+            Type elementType)
+        : base(property, listType, elementType)
         { }
 
         //----------------------------------------------------------------------
 
         protected override float GetElementHeight(
             SerializedProperty element,
-            int index)
+            int elementIndex)
         {
             var height = 0f;
 
@@ -47,6 +51,8 @@ namespace UnityExtensions
             bool isActive,
             bool isFocused)
         {
+            position.xMin += 12;
+
             var count = 0;
             var spacing = EditorGUIUtility.standardVerticalSpacing;
             foreach (var property in EnumerateChildProperties(element))
@@ -96,7 +102,6 @@ namespace UnityExtensions
         private static IEnumerable<SerializedProperty>
         EnumerateChildProperties(SerializedProperty parentProperty)
         {
-            var parentPropertyPath = parentProperty.propertyPath;
             var iterator = parentProperty.Copy();
             var end = iterator.GetEndProperty();
             if (iterator.NextVisible(enterChildren: true))

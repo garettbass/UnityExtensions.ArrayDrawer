@@ -5,7 +5,7 @@ using UnityEngine;
 namespace UnityExtensions.ArrayDrawerExamples
 {
 
-    [CreateAssetMenu]
+    // [CreateAssetMenu]
     public class SampleAsset : ScriptableObject
     {
 
@@ -18,7 +18,7 @@ namespace UnityExtensions.ArrayDrawerExamples
         //[ReorderableList]
         public SampleStruct[] structArray;
 
-        [ReorderableList(subassets: true)]
+        [ReorderableList(elementsAreSubassets: true)]
         public SampleSubasset[] subassetArray;
 
     }

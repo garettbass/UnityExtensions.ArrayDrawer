@@ -15,8 +15,16 @@ namespace UnityExtensions
 
     internal class ReorderableListOfValues : ReorderableList
     {
+        public readonly Type listType;
 
-        public ReorderableListOfValues(SerializedProperty property)
+        public readonly Type elementType;
+
+        //----------------------------------------------------------------------
+
+        public ReorderableListOfValues(
+            SerializedProperty property,
+            Type listType,
+            Type elementType)
         : base(
             serializedObject: property.serializedObject,
             elements: property.Copy(),
@@ -25,8 +33,10 @@ namespace UnityExtensions
             displayAddButton: true,
             displayRemoveButton: true)
         {
+            this.listType = listType;
+            this.elementType = elementType;
+
             headerHeight -= 2;
-            // elementHeight = 0;
             drawHeaderCallback = DrawHeaderCallback;
             elementHeightCallback = ElementHeightCallback;
             drawElementCallback = DrawElementCallback;
@@ -443,7 +453,7 @@ namespace UnityExtensions
             position.height -= 1;
         }
 
-        //----------------------------------------------------------------------
+        //======================================================================
 
         private delegate void EndEditingActiveTextFieldDelegate();
 

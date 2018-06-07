@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -85,7 +86,6 @@ namespace UnityExtensions
         protected static IEnumerable<SerializedProperty>
         EnumerateChildProperties(SerializedProperty parentProperty)
         {
-            var parentPropertyPath = parentProperty.propertyPath;
             var iterator = parentProperty.Copy();
             var end = iterator.GetEndProperty();
             if (iterator.NextVisible(enterChildren: true))
@@ -99,6 +99,14 @@ namespace UnityExtensions
                 }
                 while (iterator.NextVisible(enterChildren: false));
             }
+        }
+
+        //----------------------------------------------------------------------
+
+        protected static IEnumerable<SerializedProperty>
+        EnumerateElementProperties(SerializedProperty arrayProperty)
+        {
+            return EnumerateChildProperties(arrayProperty).Skip(1);
         }
 
         //----------------------------------------------------------------------
@@ -117,7 +125,7 @@ namespace UnityExtensions
             GUIContent label);
 
         private static readonly DefaultPropertyFieldDelegate
-        DefaultPropertyField =
+        s_DefaultPropertyField =
             (DefaultPropertyFieldDelegate)
             Delegate.CreateDelegate(
                 typeof(DefaultPropertyFieldDelegate),
@@ -130,13 +138,21 @@ namespace UnityExtensions
                 )
             );
 
+        protected static bool DefaultPropertyField(
+            Rect position,
+            SerializedProperty property,
+            GUIContent label)
+        {
+            return s_DefaultPropertyField(position, property, label);
+        }
+
         //----------------------------------------------------------------------
 
         private delegate bool HasVisibleChildFieldsDelegate(
             SerializedProperty property);
 
         private static readonly HasVisibleChildFieldsDelegate
-        HasVisibleChildFields =
+        s_HasVisibleChildFields =
             (HasVisibleChildFieldsDelegate)
             Delegate.CreateDelegate(
                 typeof(HasVisibleChildFieldsDelegate),
@@ -148,6 +164,12 @@ namespace UnityExtensions
                     BindingFlags.Static
                 )
             );
+
+        protected static bool HasVisibleChildFields(
+            SerializedProperty property)
+        {
+            return s_HasVisibleChildFields(property);
+        }
 
         //----------------------------------------------------------------------
 
@@ -167,17 +189,10 @@ namespace UnityExtensions
             }
         }
 
-        private Deferred IndentLevelScope()
+        protected IDisposable IndentLevelScope(int indent = 1)
         {
-            EditorGUI.indentLevel += 1;
-            return new Deferred(() => EditorGUI.indentLevel -= 1);
-        }
-
-        private Deferred ColorAlphaScope(float a)
-        {
-            var oldColor = GUI.color;
-            GUI.color = new Color(1, 1, 1, a);
-            return new Deferred(() => GUI.color = oldColor);
+            EditorGUI.indentLevel += indent;
+            return new Deferred(() => EditorGUI.indentLevel -= indent);
         }
 
     }

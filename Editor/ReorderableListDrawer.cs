@@ -13,19 +13,27 @@ namespace UnityExtensions
     public class ReorderableListDrawer : ArrayDrawer
     {
 
+        public new ReorderableListAttribute attribute
+        {
+            get { return (ReorderableListAttribute)base.attribute; }
+        }
+
         public override bool CanCacheInspectorGUI(SerializedProperty property)
         {
-            return false;
+            return true;
         }
 
         public override float GetPropertyHeight(
             SerializedProperty property,
             GUIContent label)
         {
-            if (m_ReorderableList == null)
-                CreateReorderableList(property);
+            var reorderableListOfValues = GetReorderableList(property);
 
-            return m_ReorderableList.GetHeight(label);
+            Debug.Assert(
+                reorderableListOfValues.serializedProperty.propertyPath ==
+                property.propertyPath);
+
+            return reorderableListOfValues.GetHeight(label);
         }
 
         public override void OnGUI(
@@ -33,14 +41,73 @@ namespace UnityExtensions
             SerializedProperty property,
             GUIContent label)
         {
-            m_ReorderableList.DoGUI(position);
+            var reorderableListOfValues = GetReorderableList(property);
+
+            reorderableListOfValues.DoGUI(position);
         }
 
         //----------------------------------------------------------------------
 
-        private ReorderableListOfValues m_ReorderableList;
+        private class ReorderableListMap
+        : Dictionary<string, ReorderableListOfValues>
+        {
 
-        private void CreateReorderableList(SerializedProperty property)
+            public void Add(
+                SerializedProperty property,
+                ReorderableListOfValues reorderableListOfValues)
+            {
+                var propertyPath = property.propertyPath;
+                base.Add(propertyPath, reorderableListOfValues);
+            }
+
+            public ReorderableListOfValues Find(SerializedProperty property)
+            {
+                var propertyPath = property.propertyPath;
+                var reorderableListOfValues = default(ReorderableListOfValues);
+                base.TryGetValue(
+                    propertyPath,
+                    out reorderableListOfValues
+                );
+                return reorderableListOfValues;
+            }
+
+        }
+
+        private readonly ReorderableListMap
+        m_ReorderableListMap = new ReorderableListMap();
+
+        private ReorderableListOfValues
+        m_MostRecentReorderableList;
+
+        private ReorderableListOfValues
+        GetReorderableList(SerializedProperty property)
+        {
+            if (m_MostRecentReorderableList != null)
+            {
+                var mostRecentPropertyPath =
+                    m_MostRecentReorderableList
+                    .serializedProperty
+                    .propertyPath;
+                if (mostRecentPropertyPath == property.propertyPath)
+                    return m_MostRecentReorderableList;
+            }
+
+            m_MostRecentReorderableList =
+                m_ReorderableListMap
+                .Find(property);
+
+            if (m_MostRecentReorderableList == null)
+            {
+                m_MostRecentReorderableList = CreateReorderableList(property);
+                m_ReorderableListMap
+                .Add(property, m_MostRecentReorderableList);
+            }
+
+            return m_MostRecentReorderableList;
+        }
+
+        private ReorderableListOfValues
+        CreateReorderableList(SerializedProperty property)
         {
             var listType = fieldInfo.FieldType;
 
@@ -67,13 +134,12 @@ namespace UnityExtensions
 
             if (elementIsValue)
             {
-                m_ReorderableList =
+                return
                     new ReorderableListOfValues(
                         property,
                         listType,
                         elementType
                     );
-                return;
             }
 
             var elementIsScriptableObject =
@@ -82,11 +148,10 @@ namespace UnityExtensions
 
             if (elementIsScriptableObject)
             {
-                var reorderableListAttribute = (ReorderableListAttribute)attribute;
-
                 var elementsAreSubassets =
                     elementIsScriptableObject &&
-                    reorderableListAttribute.elementsAreSubassets;
+                    attribute != null &&
+                    attribute.elementsAreSubassets;
 
                 if (elementsAreSubassets)
                 {
@@ -102,24 +167,22 @@ namespace UnityExtensions
                         )
                         .ToArray();
 
-                    m_ReorderableList =
+                    return
                         new ReorderableListOfSubassets(
                             property,
                             listType,
                             elementType,
                             subassetTypes
                         );
-                    return;
                 }
                 else
                 {
-                    m_ReorderableList =
+                    return
                         new ReorderableListOfValues(
                             property,
                             listType,
                             elementType
                         );
-                    return;
                 }
             }
 
@@ -136,17 +199,16 @@ namespace UnityExtensions
 
                 if (elementIsStruct || elementIsClass)
                 {
-                    m_ReorderableList =
+                    return
                         new ReorderableListOfStructures(
                             property,
                             listType,
                             elementType
                         );
-                    return;
                 }
             }
 
-            m_ReorderableList =
+            return
                 new ReorderableListOfValues(
                     property,
                     listType,

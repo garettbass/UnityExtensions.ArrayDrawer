@@ -224,23 +224,21 @@ namespace UnityExtensions
 
         private GUIContent m_Label = new GUIContent();
 
-        private string m_LabelText;
-
         private void UpdateLabel(GUIContent label)
         {
             m_Label.image = label.image;
             m_Label.tooltip = label.tooltip;
-            m_LabelText = label.text;
 
-            var length = serializedProperty.arraySize;
+            var labelText = label.text;
+            var arraySize = serializedProperty.arraySize;
 
-            if (string.IsNullOrEmpty(m_LabelText))
+            if (string.IsNullOrEmpty(labelText))
             {
-                m_Label.text = string.Format("({0})", length);
+                m_Label.text = string.Format("({0})", arraySize);
             }
             else
             {
-                m_Label.text = string.Format("{0} ({1})", m_LabelText, length);
+                m_Label.text = string.Format("{0} ({1})", labelText, arraySize);
             }
         }
 

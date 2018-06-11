@@ -8,7 +8,11 @@ namespace UnityExtensions
     public class ReorderableListAttribute : PropertyAttribute
     {
 
-        public readonly bool elementsAreSubassets;
+        public bool disableDragging;
+
+        public bool elementsAreSubassets;
+
+        public string elementHeaderFormat;
 
         public ReorderableListAttribute() { }
 

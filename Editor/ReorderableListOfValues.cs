@@ -19,6 +19,15 @@ namespace UnityExtensions
 
         public readonly Type elementType;
 
+        public string elementHeaderFormat;
+
+        public bool showElementHeader
+        {
+            get { return !string.IsNullOrEmpty(elementHeaderFormat); }
+        }
+
+        protected readonly GUIContent m_TitleContent = new GUIContent();
+
         //----------------------------------------------------------------------
 
         public ReorderableListOfValues(
@@ -471,6 +480,38 @@ namespace UnityExtensions
                     BindingFlags.Static
                 )
             );
+
+        //======================================================================
+
+        protected struct Deferred : IDisposable
+        {
+            private readonly Action _onDispose;
+
+            public Deferred(Action onDispose)
+            {
+                _onDispose = onDispose;
+            }
+
+            public void Dispose()
+            {
+                if (_onDispose != null)
+                    _onDispose();
+            }
+        }
+
+        protected Deferred ColorScope(Color newColor)
+        {
+            var oldColor = GUI.color;
+            GUI.color = newColor;
+            return new Deferred(() => GUI.color = oldColor);
+        }
+
+        protected Deferred ColorAlphaScope(float a)
+        {
+            var oldColor = GUI.color;
+            GUI.color = new Color(1, 1, 1, a);
+            return new Deferred(() => GUI.color = oldColor);
+        }
 
     }
 

@@ -98,7 +98,16 @@ namespace UnityExtensions
 
             if (m_MostRecentReorderableList == null)
             {
-                m_MostRecentReorderableList = CreateReorderableList(property);
+                var reorderableList = CreateReorderableList(property);
+                if (attribute != null)
+                {
+                    reorderableList.draggable =
+                        false == attribute.disableDragging;
+
+                    reorderableList.elementHeaderFormat =
+                        attribute.elementHeaderFormat;
+                }
+                m_MostRecentReorderableList = reorderableList;
                 m_ReorderableListMap
                 .Add(property, m_MostRecentReorderableList);
             }

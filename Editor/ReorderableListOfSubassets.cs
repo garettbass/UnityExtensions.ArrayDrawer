@@ -22,8 +22,6 @@ namespace UnityExtensions
 
         private readonly bool m_UseFullSubassetTypeNames;
 
-        private readonly GUIContent m_TitleContent = new GUIContent();
-
         //----------------------------------------------------------------------
 
         public ReorderableListOfSubassets(
@@ -66,9 +64,14 @@ namespace UnityExtensions
             if (subasset == null)
                 return EditorGUIUtility.singleLineHeight;
 
+            var height = m_SubassetTypes.Length > 1 ? headerHeight : 0f;
+
             var serializedObject = GetSerializedObjectFromCache(subasset);
 
-            var height = m_SubassetTypes.Length > 1 ? headerHeight : 0f;
+            if (showElementHeader || m_SubassetTypes.Length > 1)
+            {
+                height += headerHeight;
+            }
 
             height += GetSubassetHeight(serializedObject);
 
@@ -108,7 +111,7 @@ namespace UnityExtensions
 
             var serializedObject = GetSerializedObjectFromCache(subasset);
 
-            if (m_SubassetTypes.Length > 1)
+            if (showElementHeader || m_SubassetTypes.Length > 1)
             {
                 DrawElementHeader(
                     position,
@@ -184,9 +187,6 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
-        private static readonly GUIStyle
-        BottomShadowInwards = "BottomShadowInwards";
-
         private void DrawElementHeader(
             Rect position,
             Object subasset,
@@ -213,6 +213,7 @@ namespace UnityExtensions
             scriptRect.yMax -= 1;
             scriptRect.width = titleWidth + 16;
             var scriptProperty = serializedObject.FindProperty("m_Script");
+
             using (ColorAlphaScope(0))
             {
                 EditorGUI.BeginDisabledGroup(disabled: true);
@@ -227,22 +228,18 @@ namespace UnityExtensions
             if (IsRepaint())
             {
                 var fillRect = position;
-                fillRect.xMin -= 19;
+                fillRect.xMin -= draggable ? 19 : 5;
                 fillRect.xMax += 5;
+                fillRect.y -= 2;
+
+                var fillStyle = HeaderBackgroundStyle;
 
                 using (ColorAlphaScope(0.5f))
                 {
-                    var fillStyle = BottomShadowInwards;
                     fillStyle.Draw(fillRect, false, false, false, false);
                 }
 
-                fillRect.y += fillRect.height - 1;
-                DrawHorizontalLine(fillRect);
-
-                var embossStyle =
-                    isActive
-                    ? EditorStyles.boldLabel
-                    : EditorStyles.whiteBoldLabel;
+                var embossStyle = EditorStyles.whiteBoldLabel;
                 var embossRect = position;
                 embossRect.yMin -= 0;
                 EditorGUI.BeginDisabledGroup(true);
@@ -409,38 +406,6 @@ namespace UnityExtensions
                     cache.Remove(@object);
                 }
             }
-        }
-
-        //----------------------------------------------------------------------
-
-        private struct Deferred : IDisposable
-        {
-            private readonly Action _onDispose;
-
-            public Deferred(Action onDispose)
-            {
-                _onDispose = onDispose;
-            }
-
-            public void Dispose()
-            {
-                if (_onDispose != null)
-                    _onDispose();
-            }
-        }
-
-        private Deferred ColorScope(Color newColor)
-        {
-            var oldColor = GUI.color;
-            GUI.color = newColor;
-            return new Deferred(() => GUI.color = oldColor);
-        }
-
-        private Deferred ColorAlphaScope(float a)
-        {
-            var oldColor = GUI.color;
-            GUI.color = new Color(1, 1, 1, a);
-            return new Deferred(() => GUI.color = oldColor);
         }
 
     }

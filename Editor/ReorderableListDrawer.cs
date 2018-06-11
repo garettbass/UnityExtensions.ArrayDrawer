@@ -54,21 +54,17 @@ namespace UnityExtensions
 
             public void Add(
                 SerializedProperty property,
-                ReorderableListOfValues reorderableListOfValues)
+                ReorderableListOfValues reorderableList)
             {
                 var propertyPath = property.propertyPath;
-                base.Add(propertyPath, reorderableListOfValues);
+                base.Add(propertyPath, reorderableList);
             }
 
-            public ReorderableListOfValues Find(SerializedProperty property)
+            public ReorderableListOfValues Find(string propertyPath)
             {
-                var propertyPath = property.propertyPath;
-                var reorderableListOfValues = default(ReorderableListOfValues);
-                base.TryGetValue(
-                    propertyPath,
-                    out reorderableListOfValues
-                );
-                return reorderableListOfValues;
+                var reorderableList = default(ReorderableListOfValues);
+                base.TryGetValue(propertyPath, out reorderableList);
+                return reorderableList;
             }
 
         }
@@ -79,26 +75,31 @@ namespace UnityExtensions
         private ReorderableListOfValues
         m_MostRecentReorderableList;
 
+        private string
+        m_MostRecentPropertyPath;
+
         private ReorderableListOfValues
         GetReorderableList(SerializedProperty property)
         {
+            var propertyPath = property.propertyPath;
+
             if (m_MostRecentReorderableList != null)
             {
-                var mostRecentPropertyPath =
-                    m_MostRecentReorderableList
-                    .serializedProperty
-                    .propertyPath;
-                if (mostRecentPropertyPath == property.propertyPath)
+                if (m_MostRecentPropertyPath == propertyPath)
+                {
+                    m_MostRecentReorderableList.serializedProperty = property;
                     return m_MostRecentReorderableList;
+                }
             }
 
             m_MostRecentReorderableList =
                 m_ReorderableListMap
-                .Find(property);
+                .Find(propertyPath);
 
             if (m_MostRecentReorderableList == null)
             {
                 var reorderableList = CreateReorderableList(property);
+
                 if (attribute != null)
                 {
                     reorderableList.draggable =
@@ -107,10 +108,17 @@ namespace UnityExtensions
                     reorderableList.elementHeaderFormat =
                         attribute.elementHeaderFormat;
                 }
+
+                m_ReorderableListMap.Add(property, reorderableList);
+
                 m_MostRecentReorderableList = reorderableList;
-                m_ReorderableListMap
-                .Add(property, m_MostRecentReorderableList);
             }
+            else
+            {
+                m_MostRecentReorderableList.serializedProperty = property;
+            }
+
+            m_MostRecentPropertyPath = propertyPath;
 
             return m_MostRecentReorderableList;
         }

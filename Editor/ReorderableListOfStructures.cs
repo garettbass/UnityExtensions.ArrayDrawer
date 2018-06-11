@@ -89,16 +89,6 @@ namespace UnityExtensions
             bool isActive,
             bool isFocused)
         {
-            if (IsRepaint() && element != null)
-            {
-                var dark = ElementBackgroundStyle;
-                var darkRect = position;
-                darkRect.xMin += 2;
-                darkRect.xMax -= 2;
-                darkRect.yMin += 1;
-                darkRect.yMax -= 1;
-                dark.Draw(darkRect, false, false, false, false);
-            }
             base.DrawElementBackground(
                 position,
                 element,
@@ -106,6 +96,20 @@ namespace UnityExtensions
                 isActive,
                 isFocused
             );
+
+            if (IsRepaint() && element != null)
+            {
+                var fillStyle = ElementBackgroundStyle;
+                var fillRect = position;
+                fillRect.xMin += 2;
+                fillRect.xMax -= 2;
+                fillRect.yMin += 1;
+                fillRect.yMax -= 1;
+                using (ColorAlphaScope(isActive ? 0.5f : 1))
+                {
+                    fillStyle.Draw(fillRect, false, false, false, false);
+                }
+            }
         }
 
         //----------------------------------------------------------------------
@@ -138,13 +142,13 @@ namespace UnityExtensions
             if (IsRepaint())
             {
                 var fillRect = position;
-                fillRect.xMin -= draggable ? 19 : 5;
-                fillRect.xMax += 5;
+                fillRect.xMin -= draggable ? 18 : 4;
+                fillRect.xMax += 4;
                 fillRect.y -= 2;
 
                 var fillStyle = HeaderBackgroundStyle;
 
-                using (ColorAlphaScope(0.5f))
+                using (ColorAlphaScope(0.75f))
                 {
                     fillStyle.Draw(fillRect, false, false, false, false);
                 }

@@ -99,6 +99,7 @@ namespace UnityExtensions
         {
             if (isActive)
             {
+                position.yMin -= 1;
                 position.yMax += 1;
             }
             defaultBehaviours.DrawElementBackground(

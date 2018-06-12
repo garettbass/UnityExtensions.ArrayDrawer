@@ -99,8 +99,10 @@ namespace UnityExtensions
         {
             if (isActive)
             {
-                position.yMin -= 1;
-                position.yMax += 1;
+                var isProSkin = EditorGUIUtility.isProSkin;
+                position.xMax += isProSkin ? 1 : 0;
+                position.yMin -= isProSkin ? 0 : 1;
+                position.yMax += isProSkin ? 2 : 1;
             }
             defaultBehaviours.DrawElementBackground(
                 position,

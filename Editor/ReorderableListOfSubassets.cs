@@ -228,8 +228,8 @@ namespace UnityExtensions
             if (IsRepaint())
             {
                 var fillRect = position;
-                fillRect.xMin -= draggable ? 19 : 5;
-                fillRect.xMax += 5;
+                fillRect.xMin -= draggable ? 18 : 4;
+                fillRect.xMax += 4;
                 fillRect.y -= 2;
 
                 var fillStyle = HeaderBackgroundStyle;

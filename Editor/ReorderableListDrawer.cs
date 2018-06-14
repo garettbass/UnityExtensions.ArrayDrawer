@@ -159,14 +159,14 @@ namespace UnityExtensions
                     );
             }
 
-            var elementIsScriptableObject =
-                typeof(ScriptableObject)
+            var elementIsUnityEngineObject =
+                typeof(UnityEngine.Object)
                 .IsAssignableFrom(elementType);
 
-            if (elementIsScriptableObject)
+            if (elementIsUnityEngineObject)
             {
                 var elementsAreSubassets =
-                    elementIsScriptableObject &&
+                    elementIsUnityEngineObject &&
                     attribute != null &&
                     attribute.elementsAreSubassets;
 

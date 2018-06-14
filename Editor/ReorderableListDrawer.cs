@@ -41,9 +41,9 @@ namespace UnityExtensions
             SerializedProperty property,
             GUIContent label)
         {
-            var reorderableListOfValues = GetReorderableList(property);
+            var reorderableList = GetReorderableList(property);
 
-            reorderableListOfValues.DoGUI(position);
+            reorderableList.DoGUI(position);
         }
 
         //----------------------------------------------------------------------

@@ -15,6 +15,9 @@ namespace UnityExtensions
 
     internal class ReorderableListOfValues : ReorderableList
     {
+
+        private const float kIndentPerLevel = 15;
+
         public readonly Type listType;
 
         public readonly Type elementType;
@@ -71,17 +74,22 @@ namespace UnityExtensions
 
         public virtual void DoGUI(Rect position)
         {
-            var array = serializedProperty;
-            if (array.isExpanded)
+            position.xMin += EditorGUI.indentLevel * kIndentPerLevel;
+
+            using (IndentLevelScope(-EditorGUI.indentLevel))
             {
-                DoList(position);
+                var array = serializedProperty;
+                if (array.isExpanded)
+                {
+                    DoList(position);
+                }
+                else
+                {
+                    index = -1;
+                    DoCollapsedListBackground(position);
+                }
+                DrawHeader(position);
             }
-            else
-            {
-                index = -1;
-                DoCollapsedListBackground(position);
-            }
-            DrawHeader(position);
         }
 
         //----------------------------------------------------------------------
@@ -606,6 +614,12 @@ namespace UnityExtensions
             var oldColor = GUI.color;
             GUI.color = new Color(1, 1, 1, a);
             return new Deferred(() => GUI.color = oldColor);
+        }
+
+        protected IDisposable IndentLevelScope(int indent = 1)
+        {
+            EditorGUI.indentLevel += indent;
+            return new Deferred(() => EditorGUI.indentLevel -= indent);
         }
 
     }

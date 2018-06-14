@@ -80,41 +80,6 @@ namespace UnityExtensions
         //----------------------------------------------------------------------
 
         protected static readonly GUIStyle
-        ElementBackgroundStyle = "CN EntryBackEven";
-
-        protected override void DrawElementBackground(
-            Rect position,
-            SerializedProperty element,
-            int elementIndex,
-            bool isActive,
-            bool isFocused)
-        {
-            base.DrawElementBackground(
-                position,
-                element,
-                elementIndex,
-                isActive,
-                isFocused
-            );
-
-            if (IsRepaint() && element != null)
-            {
-                var fillStyle = ElementBackgroundStyle;
-                var fillRect = position;
-                fillRect.xMin += 2;
-                fillRect.xMax -= 2;
-                fillRect.yMin += 1;
-                fillRect.yMax -= 1;
-                using (ColorAlphaScope(isActive ? 0.5f : 1))
-                {
-                    fillStyle.Draw(fillRect, false, false, false, false);
-                }
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        protected static readonly GUIStyle
         HeaderBackgroundStyle = "Toolbar";
 
         private void DrawElementHeader(

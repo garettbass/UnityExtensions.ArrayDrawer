@@ -47,9 +47,14 @@ namespace UnityExtensions
 
             headerHeight -= 2;
             drawHeaderCallback = DrawHeaderCallback;
+            drawFooterCallback = DrawFooterCallback;
             elementHeightCallback = ElementHeightCallback;
             drawElementCallback = DrawElementCallback;
             drawElementBackgroundCallback = DrawElementBackgroundCallback;
+
+            onAddCallback = OnAddCallback;
+            onCanRemoveCallback = OnCanRemoveCallback;
+
 #if UNITY_2018_1_OR_NEWER
             drawNoneElementCallback = DrawEmptyElementCallback;
 #endif // UNITY_2018_1_OR_NEWER
@@ -66,9 +71,55 @@ namespace UnityExtensions
 
         public virtual void DoGUI(Rect position)
         {
-            base.DoList(position);
+            var array = serializedProperty;
+            if (array.isExpanded)
+            {
+                DoList(position);
+            }
+            else
+            {
+                index = -1;
+                DoCollapsedListBackground(position);
+            }
             DrawHeader(position);
-            DrawFooterEdge(position);
+        }
+
+        //----------------------------------------------------------------------
+
+        private void DoCollapsedListBackground(Rect position)
+        {
+            var headerRect = position;
+            headerRect.height = headerHeight;
+
+            var listRect = position;
+            listRect.y += headerHeight;
+            listRect.height = 7;
+
+            var footerRect = position;
+            footerRect.y += headerHeight + listRect.height;
+            footerRect.height = footerHeight;
+
+            if (showDefaultBackground && IsRepaint())
+            {
+                defaultBehaviours.DrawHeaderBackground(headerRect);
+                defaultBehaviours
+                .boxBackground
+                .Draw(listRect, false, false, false, false);
+            }
+            DrawFooterCallback(footerRect);
+        }
+
+        //----------------------------------------------------------------------
+
+        private void OnAddCallback(ReorderableList list)
+        {
+            serializedProperty.isExpanded = true;
+            defaultBehaviours.DoAddButton(list);
+        }
+
+        private bool OnCanRemoveCallback(ReorderableList list)
+        {
+            return serializedProperty.isExpanded;
         }
 
         //----------------------------------------------------------------------
@@ -89,6 +140,11 @@ namespace UnityExtensions
         {
             PropertyField(position, element, GUIContent.none);
         }
+
+        //----------------------------------------------------------------------
+
+        protected static readonly GUIStyle
+        ElementBackgroundStyle = "CN EntryBackEven";
 
         protected virtual void DrawElementBackground(
             Rect position,
@@ -111,6 +167,20 @@ namespace UnityExtensions
                 isFocused,
                 draggable: true
             );
+
+            if (IsRepaint() && element != null)
+            {
+                var fillStyle = ElementBackgroundStyle;
+                var fillRect = position;
+                fillRect.xMin += 2;
+                fillRect.xMax -= 2;
+                fillRect.yMin += 1;
+                fillRect.yMax -= 1;
+                using (ColorAlphaScope(isActive ? 0.5f : 1))
+                {
+                    fillStyle.Draw(fillRect, false, false, false, false);
+                }
+            }
         }
 
         //----------------------------------------------------------------------
@@ -218,18 +288,17 @@ namespace UnityExtensions
         private void DrawHeader(Rect position)
         {
             defaultBehaviours.DrawHeaderBackground(position);
-            position.xMin += 6;
+            position.xMin += 16;
             position.y += 1;
-            EditorGUI.LabelField(position, m_Label);
-        }
+            position.height = EditorGUIUtility.singleLineHeight;
 
-        private void DrawFooterEdge(Rect position)
-        {
-            position.xMin += 2;
-            position.xMax -= 2;
-            position.y += position.height - 18;
-            position.y -= 1;
-            DrawHorizontalLine(position);
+            var property = serializedProperty;
+            var wasExpanded = property.isExpanded;
+            var isExpanded = EditorGUI.Foldout(position, wasExpanded, m_Label);
+            if (isExpanded != wasExpanded)
+            {
+                property.isExpanded = isExpanded;
+            }
         }
 
         //----------------------------------------------------------------------
@@ -241,17 +310,19 @@ namespace UnityExtensions
             m_Label.image = label.image;
             m_Label.tooltip = label.tooltip;
 
-            var labelText = label.text;
+            var text = label.text;
             var arraySize = serializedProperty.arraySize;
 
-            if (string.IsNullOrEmpty(labelText))
+            if (string.IsNullOrEmpty(text))
             {
-                m_Label.text = string.Format("({0})", arraySize);
+                text = string.Format("({0})", arraySize);
             }
             else
             {
-                m_Label.text = string.Format("{0} ({1})", labelText, arraySize);
+                text = string.Format("{0} ({1})", text, arraySize);
             }
+
+            m_Label.text = text;
         }
 
         //----------------------------------------------------------------------
@@ -264,12 +335,17 @@ namespace UnityExtensions
             var length = array.arraySize;
             m_ElementHeights.Clear();
             m_ElementHeights.Capacity = length;
+            var isExpanded = array.isExpanded;
             for (int elementIndex = 0; elementIndex < length; ++elementIndex)
             {
-                var element = array.GetArrayElementAtIndex(elementIndex);
-                var interiorHeight = GetElementHeight(element, elementIndex);
-                var exteriorHeight = AddElementPadding(interiorHeight);
-                m_ElementHeights.Add(exteriorHeight);
+                var height = 0f;
+                if (isExpanded)
+                {
+                    var element = array.GetArrayElementAtIndex(elementIndex);
+                    height = GetElementHeight(element, elementIndex);
+                    height = AddElementPadding(height);
+                }
+                m_ElementHeights.Add(height);
             }
         }
 
@@ -277,7 +353,16 @@ namespace UnityExtensions
 
         private void DrawHeaderCallback(Rect position)
         {
-            // Header is drawn in DoList()
+            // DoGUI draws the header content after the list is drawn
+        }
+
+        private void DrawFooterCallback(Rect position)
+        {
+            defaultBehaviours.DrawFooter(position, this);
+            position.xMin += 2;
+            position.xMax -= 2;
+            position.y -= 6;
+            DrawHorizontalLine(position);
         }
 
         private float ElementHeightCallback(int elementIndex)
@@ -292,7 +377,11 @@ namespace UnityExtensions
             bool isFocused)
         {
             RemoveElementPadding(ref position);
+
             var array = serializedProperty;
+            if (array.isExpanded == false)
+                return;
+
             var element = array.GetArrayElementAtIndex(elementIndex);
             DrawElement(position, element, elementIndex, isActive, isFocused);
         }
@@ -304,6 +393,9 @@ namespace UnityExtensions
             bool isFocused)
         {
             var array = serializedProperty;
+            if (array.isExpanded == false)
+                return;
+
             var length = array.arraySize;
             var element = default(SerializedProperty);
 

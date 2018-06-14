@@ -262,11 +262,13 @@ namespace UnityExtensions
 
         private void OnAddCallback(ReorderableList list)
         {
+            serializedProperty.isExpanded = true;
             AddSubasset(m_SubassetTypes[0]);
         }
 
         private void OnAddDropdownCallback(Rect position, ReorderableList list)
         {
+            serializedProperty.isExpanded = true;
             var menu = new GenericMenu();
 
             foreach (var mutableElementType in m_SubassetTypes)

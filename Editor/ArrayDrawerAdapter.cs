@@ -18,6 +18,15 @@ namespace UnityExtensions
                 BindingFlags.Instance
             );
 
+        private static readonly FieldInfo
+        s_FieldInfo =
+            typeof(PropertyDrawer)
+            .GetField(
+                "m_FieldInfo",
+                BindingFlags.NonPublic |
+                BindingFlags.Instance
+            );
+
         private readonly ArrayDrawer m_ArrayDrawer;
 
         internal ArrayDrawerAdapter(ArrayDrawer arrayDrawer)
@@ -56,7 +65,11 @@ namespace UnityExtensions
         private void ResolveFieldInfo(SerializedProperty property)
         {
             if (m_ArrayDrawer.fieldInfo == null)
-                m_ArrayDrawer.fieldInfo = GetFieldInfo(property);
+            {
+                var fieldInfo = GetFieldInfo(property);
+                s_FieldInfo.SetValue(this, fieldInfo);
+                m_ArrayDrawer.fieldInfo = fieldInfo;
+            }
         }
 
         //======================================================================
@@ -84,7 +97,13 @@ namespace UnityExtensions
         internal static FieldInfo GetFieldInfo(SerializedProperty property)
         {
             Type propertyType;
-            return s_GetFieldInfoFromProperty(property, out propertyType);
+            var fieldInfo =
+                s_GetFieldInfoFromProperty(property, out propertyType);
+
+            if (fieldInfo == null)
+                Debug.LogFormat("GetFieldInfo({0}) == null", property.propertyPath);
+
+            return fieldInfo;
         }
 
     }

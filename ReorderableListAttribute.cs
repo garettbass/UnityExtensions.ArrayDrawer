@@ -8,6 +8,16 @@ namespace UnityExtensions
     public class ReorderableListAttribute : PropertyAttribute
     {
 
+        public bool disableAdding;
+
+        public bool disableRemoving;
+
+        public bool disableAddingAndRemoving
+        {
+            get { return disableAdding && disableRemoving; }
+            set { disableAdding = disableRemoving = value; }
+        }
+
         public bool disableDragging;
 
         public bool elementsAreSubassets;

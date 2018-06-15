@@ -29,6 +29,9 @@ namespace UnityExtensions
             get { return !string.IsNullOrEmpty(elementHeaderFormat); }
         }
 
+        protected static readonly new Defaults
+        defaultBehaviours = new Defaults();
+
         protected readonly GUIContent m_TitleContent = new GUIContent();
 
         //----------------------------------------------------------------------
@@ -69,11 +72,23 @@ namespace UnityExtensions
         {
             UpdateLabel(label);
             UpdateElementHeights();
-            return GetHeight();
+            var height = GetHeight();
+
+            if (!displayAdd && !displayRemove)
+            {
+                height -= 14;
+            }
+
+            return height;
         }
 
         public virtual void DoGUI(Rect position)
         {
+            if (!displayAdd && !displayRemove)
+            {
+                index = -1;
+            }
+
             position.xMin += EditorGUI.indentLevel * kIndentPerLevel;
 
             using (IndentLevelScope(-EditorGUI.indentLevel))
@@ -197,25 +212,37 @@ namespace UnityExtensions
             GenericMenu menu,
             int elementIndex)
         {
-            menu.AddItem(new GUIContent("Insert Above"), false, () =>
+            var property = serializedProperty;
+            var serializedObject = property.serializedObject;
+            if (displayAdd)
             {
-                serializedProperty.InsertArrayElementAtIndex(elementIndex);
-                serializedProperty.serializedObject.ApplyModifiedProperties();
-                index = elementIndex;
-            });
-            menu.AddItem(new GUIContent("Insert Below"), false, () =>
+                menu.AddItem(new GUIContent("Insert Above"), false, () =>
+                {
+                    property.InsertArrayElementAtIndex(elementIndex);
+                    serializedObject.ApplyModifiedProperties();
+                    index = elementIndex;
+                });
+                menu.AddItem(new GUIContent("Insert Below"), false, () =>
+                {
+                    property.InsertArrayElementAtIndex(elementIndex + 1);
+                    serializedObject.ApplyModifiedProperties();
+                    index = elementIndex + 1;
+                });
+
+            }
+            if (displayAdd && displayRemove)
             {
-                serializedProperty.InsertArrayElementAtIndex(elementIndex + 1);
-                serializedProperty.serializedObject.ApplyModifiedProperties();
-                index = elementIndex + 1;
-            });
-            menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Remove"), false, () =>
+                menu.AddSeparator("");
+            }
+            if (displayRemove)
             {
-                serializedProperty.DeleteArrayElementAtIndex(elementIndex);
-                serializedProperty.serializedObject.ApplyModifiedProperties();
-                index = -1;
-            });
+                menu.AddItem(new GUIContent("Remove"), false, () =>
+                {
+                    property.DeleteArrayElementAtIndex(elementIndex);
+                    serializedObject.ApplyModifiedProperties();
+                    index = -1;
+                });
+            }
         }
 
         //----------------------------------------------------------------------
@@ -366,7 +393,9 @@ namespace UnityExtensions
 
         private void DrawFooterCallback(Rect position)
         {
-            defaultBehaviours.DrawFooter(position, this);
+            if (displayAdd || displayRemove)
+                defaultBehaviours.DrawFooter(position, this);
+
             position.xMin += 2;
             position.xMax -= 2;
             position.y -= 6;

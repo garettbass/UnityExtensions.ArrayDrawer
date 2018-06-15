@@ -13,9 +13,16 @@ namespace UnityExtensions
     public class ReorderableListDrawer : ArrayDrawer
     {
 
+        private static readonly ReorderableListAttribute
+        s_DefaultAttribute = new ReorderableListAttribute();
+
         public new ReorderableListAttribute attribute
         {
-            get { return (ReorderableListAttribute)base.attribute; }
+            get
+            {
+                var attribute = (ReorderableListAttribute)base.attribute;
+                return attribute ?? s_DefaultAttribute;
+            }
         }
 
         public override bool CanCacheInspectorGUI(SerializedProperty property)
@@ -100,14 +107,19 @@ namespace UnityExtensions
             {
                 var reorderableList = CreateReorderableList(property);
 
-                if (attribute != null)
-                {
-                    reorderableList.draggable =
-                        false == attribute.disableDragging;
+                var attribute = this.attribute;
 
-                    reorderableList.elementHeaderFormat =
-                        attribute.elementHeaderFormat;
-                }
+                reorderableList.displayAdd =
+                    false == attribute.disableAdding;
+
+                reorderableList.displayRemove =
+                    false == attribute.disableRemoving;
+
+                reorderableList.draggable =
+                    false == attribute.disableDragging;
+
+                reorderableList.elementHeaderFormat =
+                    attribute.elementHeaderFormat;
 
                 m_ReorderableListMap.Add(property, reorderableList);
 

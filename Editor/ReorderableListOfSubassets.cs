@@ -316,7 +316,26 @@ namespace UnityExtensions
             array.InsertArrayElementAtIndex(elementIndex);
             index = elementIndex;
 
-            var subasset = ScriptableObject.CreateInstance(subassetType);
+            var subasset = default(Object);
+
+            if (typeof(ScriptableObject).IsAssignableFrom(subassetType))
+            {
+                subasset = ScriptableObject.CreateInstance(subassetType);
+            }
+            else if (typeof(Object).IsAssignableFrom(subassetType))
+            {
+                subasset = (Object)Activator.CreateInstance(subassetType);
+            }
+
+            if (subasset == null)
+            {
+                Debug.LogErrorFormat(
+                    "Failed to create subasset of type {0}",
+                    subassetType.FullName
+                );
+                return;
+            }
+
             subasset.name =
                 m_UseFullSubassetTypeNames
                 ? subassetType.FullName

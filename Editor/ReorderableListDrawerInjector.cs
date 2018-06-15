@@ -121,15 +121,21 @@ namespace UnityExtensions
             return
                 type.IsPrimitive ||
                 HasSerializableAttribute(type) ||
-                IsPublicUnityEngineValueType(type);
+                IsSerializableUnityType(type);
         }
 
-        private static bool IsPublicUnityEngineValueType(Type type)
+        private static bool IsSerializableUnityType(Type type)
         {
             return
                 type.IsPublic &&
-                type.IsValueType &&
-                type.FullName.StartsWith("Unity");
+                (
+                    type.IsValueType ||
+                    typeof(Object).IsAssignableFrom(type)
+                ) &&
+                (
+                    type.FullName.StartsWith("UnityEngine.") ||
+                    type.FullName.StartsWith("Unity.")
+                );
         }
 
         private static bool HasSerializableAttribute(Type type)

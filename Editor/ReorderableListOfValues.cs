@@ -76,7 +76,7 @@ namespace UnityExtensions
 
             if (!displayAdd && !displayRemove)
             {
-                height -= 14;
+                height -= 14; // no add/remove buttons in footer
             }
 
             return height;
@@ -84,7 +84,7 @@ namespace UnityExtensions
 
         public virtual void DoGUI(Rect position)
         {
-            if (!displayAdd && !displayRemove)
+            if (!displayAdd && !displayRemove && !draggable)
             {
                 index = -1;
             }

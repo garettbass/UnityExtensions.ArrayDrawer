@@ -343,11 +343,17 @@ namespace UnityExtensions
         private void UpdateLabel(GUIContent label)
         {
             m_Label.image = label.image;
-            m_Label.tooltip = label.tooltip;
 
-            var text = label.text;
+            var tooltip = label.tooltip;
+            if (string.IsNullOrEmpty(tooltip))
+            {
+                tooltip = serializedProperty.tooltip;
+            }
+            m_Label.tooltip = tooltip;
+
             var arraySize = serializedProperty.arraySize;
 
+            var text = label.text;
             if (string.IsNullOrEmpty(text))
             {
                 text = string.Format("({0})", arraySize);

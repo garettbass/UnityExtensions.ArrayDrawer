@@ -57,6 +57,7 @@ namespace UnityExtensions
             SerializedProperty property,
             GUIContent label)
         {
+            ResolveFieldInfo(property);
             m_ArrayDrawer.OnGUI(position, property, label);
         }
 

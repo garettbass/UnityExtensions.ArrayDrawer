@@ -64,7 +64,7 @@ namespace UnityExtensions
             if (subasset == null)
                 return EditorGUIUtility.singleLineHeight;
 
-            var height = m_SubassetTypes.Length > 1 ? headerHeight : 0f;
+            var height = 0f;
 
             var serializedObject = GetSerializedObjectFromCache(subasset);
 
@@ -198,15 +198,9 @@ namespace UnityExtensions
             var titleContent = m_TitleContent;
             titleContent.text = ObjectNames.NicifyVariableName(subasset.name);
 
-            var titleStyle =
-                isActive
-                ? EditorStyles.whiteBoldLabel
-                : EditorStyles.boldLabel;
+            var titleStyle = EditorStyles.boldLabel;
 
-            var titleWidth =
-                titleStyle
-                .CalcSize(titleContent)
-                .x;
+            var titleWidth = titleStyle.CalcSize(titleContent).x;
 
             var scriptRect = position;
             scriptRect.yMin -= 1;

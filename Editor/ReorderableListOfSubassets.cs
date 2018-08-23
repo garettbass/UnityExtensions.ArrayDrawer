@@ -268,13 +268,13 @@ namespace UnityExtensions
             foreach (var mutableElementType in m_SubassetTypes)
             {
                 var elementType = mutableElementType;
-
-                var content = new GUIContent();
-
-                content.text =
+                var elementTypeName = 
                     m_UseFullSubassetTypeNames
                     ? elementType.FullName
                     : elementType.Name;
+
+                var content = new GUIContent();
+                content.text = ObjectNames.NicifyVariableName(elementTypeName);
 
                 menu.AddItem(
                     content,

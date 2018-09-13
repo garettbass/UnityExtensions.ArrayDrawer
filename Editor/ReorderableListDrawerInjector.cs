@@ -18,32 +18,66 @@ namespace UnityExtensions
         [InitializeOnLoadMethod]
         private static void InitializeOnLoad()
         {
-            var drawerKeySet = CreateDrawerKeySet();
-            var drawerKeySetDictionary = GetDrawerKeySetDictionary();
-            //using (TimedScope.Begin())
+            // using (TimedScope.Begin())
             {
-                drawerKeySetDictionary.Add(typeof(List<>), drawerKeySet);
-
-                var serializableTypes =
-                    AppDomain
-                    .CurrentDomain
-                    .GetAssemblies()
-                    .SelectMany(GetTypes)
-                    .Where(IsSerializable)
-                    .ToArray();
-
-                foreach (var serializableType in serializableTypes)
-                {
-                    var arrayType = serializableType.MakeArrayType();
-                    if (drawerKeySetDictionary.Contains(arrayType))
-                        continue;
-
-                    drawerKeySetDictionary.Add(arrayType, drawerKeySet);
-                }
+                s_drawerKeySetDictionary.Add(typeof(List<>), s_drawerKeySet);
+                ApplyToSelectedTypes();
+                Selection.selectionChanged += ApplyToSelectedTypes;
             }
         }
 
         //----------------------------------------------------------------------
+
+        private static readonly HashSet<Type> s_visitedTypes =
+            new HashSet<Type>();
+
+        private static void ApplyToType(Type type)
+        {
+            if (s_visitedTypes.Add(type) == false)
+                return;
+
+            if (type.IsArray)
+            {
+                var arrayType = type;
+                if (s_drawerKeySetDictionary.Contains(arrayType) == false)
+                {
+                    s_drawerKeySetDictionary.Add(arrayType, s_drawerKeySet);
+                    // UnityEngine.Debug.LogFormat(
+                    //     "Using ReorderableListDrawer for {0}",
+                    //     arrayType.FullName);
+                }
+                type = arrayType.GetElementType();
+            }
+
+            foreach (var field in GetFields(type))
+                ApplyToType(field.FieldType);
+        }
+
+        //----------------------------------------------------------------------
+
+        private static void ApplyToSelectedTypes()
+        {
+            foreach (var @object in Selection.objects)
+                ApplyToType(@object.GetType());
+        }
+
+        //----------------------------------------------------------------------
+
+        public static IEnumerable<FieldInfo> GetFields(Type type)
+        {
+            const BindingFlags bindingFlags =
+                BindingFlags.Instance |
+                BindingFlags.Public |
+                BindingFlags.NonPublic;
+            do foreach (var field in type.GetFields(bindingFlags))
+                yield return field;
+            while ((type = type.BaseType) != null);
+        }
+
+        //----------------------------------------------------------------------
+
+        private static readonly object s_drawerKeySet =
+            CreateDrawerKeySet();
 
         private static object CreateDrawerKeySet()
         {
@@ -83,6 +117,9 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
+        private static readonly IDictionary s_drawerKeySetDictionary =
+            GetDrawerKeySetDictionary();
+
         private static IDictionary GetDrawerKeySetDictionary()
         {
             // using (TimedScope.Begin())
@@ -111,55 +148,6 @@ namespace UnityExtensions
                         BindingFlags.Static
                     )
                     .GetValue(null);
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        private static bool IsSerializable(Type type)
-        {
-            return
-                type.IsPrimitive ||
-                HasSerializableAttribute(type) ||
-                IsSerializableUnityType(type);
-        }
-
-        private static bool IsSerializableUnityType(Type type)
-        {
-            return
-                type.IsPublic &&
-                (
-                    type.IsValueType ||
-                    typeof(Object).IsAssignableFrom(type)
-                ) &&
-                (
-                    type.FullName.StartsWith("UnityEngine.") ||
-                    type.FullName.StartsWith("Unity.")
-                );
-        }
-
-        private static bool HasSerializableAttribute(Type type)
-        {
-
-            return
-                Attribute
-                .GetCustomAttributes(type, inherit: true)
-                .OfType<SerializableAttribute>()
-                .Any();
-        }
-
-        private static Type[] GetTypes(Assembly assembly)
-        {
-            try
-            {
-                return
-                    assembly != null
-                    ? assembly.GetTypes()
-                    : Type.EmptyTypes;
-            }
-            catch (ReflectionTypeLoadException)
-            {
-                return Type.EmptyTypes;
             }
         }
 

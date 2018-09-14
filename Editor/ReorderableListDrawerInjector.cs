@@ -18,12 +18,9 @@ namespace UnityExtensions
         [InitializeOnLoadMethod]
         private static void InitializeOnLoad()
         {
-            // using (TimedScope.Begin())
-            {
-                s_drawerKeySetDictionary.Add(typeof(List<>), s_drawerKeySet);
-                ApplyToSelectedTypes();
-                Selection.selectionChanged += ApplyToSelectedTypes;
-            }
+            s_drawerKeySetDictionary.Add(typeof(List<>), s_drawerKeySet);
+            ApplyToSelection();
+            Selection.selectionChanged += ApplyToSelection;
         }
 
         //----------------------------------------------------------------------
@@ -31,22 +28,28 @@ namespace UnityExtensions
         private static readonly HashSet<Type> s_visitedTypes =
             new HashSet<Type>();
 
-        private static void ApplyToType(Type type)
+        internal static void ApplyToType(Type type)
         {
             if (s_visitedTypes.Add(type) == false)
                 return;
 
             if (type.IsArray)
             {
-                var arrayType = type;
-                if (s_drawerKeySetDictionary.Contains(arrayType) == false)
-                {
-                    s_drawerKeySetDictionary.Add(arrayType, s_drawerKeySet);
-                    // UnityEngine.Debug.LogFormat(
-                    //     "Using ReorderableListDrawer for {0}",
-                    //     arrayType.FullName);
-                }
-                type = arrayType.GetElementType();
+                if (s_drawerKeySetDictionary.Contains(type) == false)
+                    s_drawerKeySetDictionary.Add(type, s_drawerKeySet);
+
+                ApplyToType(type.GetElementType());
+                return;
+            }
+
+            if (type.IsGenericType &&
+                type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                if (s_drawerKeySetDictionary.Contains(type) == false)
+                    s_drawerKeySetDictionary.Add(type, s_drawerKeySet);
+
+                ApplyToType(type.GetGenericArguments()[0]);
+                return;
             }
 
             foreach (var field in GetFields(type))
@@ -55,15 +58,19 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
-        private static void ApplyToSelectedTypes()
+        private static void ApplyToSelection()
         {
             foreach (var @object in Selection.objects)
                 ApplyToType(@object.GetType());
+
+            foreach (var gameObject in Selection.gameObjects)
+                foreach (var component in gameObject.GetComponents<Component>())
+                    ApplyToType(component.GetType());
         }
 
         //----------------------------------------------------------------------
 
-        public static IEnumerable<FieldInfo> GetFields(Type type)
+        private static IEnumerable<FieldInfo> GetFields(Type type)
         {
             const BindingFlags bindingFlags =
                 BindingFlags.Instance |

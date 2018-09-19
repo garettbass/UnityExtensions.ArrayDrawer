@@ -58,27 +58,44 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
-        private static void ApplyToObject(Object @object)
+        private static void ApplyToObjectAndSubobjects(Object @object)
         {
-            if (@object == null)
-                return;
-
-            var assetPath = AssetDatabase.GetAssetPath(@object);
-            if (string.IsNullOrEmpty(assetPath) || assetPath.EndsWith(".unity"))
-            {
-                ApplyToType(@object.GetType());
-                return;
-            }
-
-            var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
-            foreach (var asset in assets)
-                if (asset != null)
-                    ApplyToType(asset.GetType());
+            foreach (var subobject in EnumerateObjectAndSubobjects(@object))
+                if (subobject != null)
+                    ApplyToType(subobject.GetType());
         }
 
         //----------------------------------------------------------------------
 
-        private static void ApplyToGameObject(GameObject gameObject)
+        private static IEnumerable<Object> EnumerateObjectAndSubobjects(
+            Object @object)
+        {
+            if (@object == null)
+                return Enumerable.Empty<Object>();
+
+            var assetPath = AssetDatabase.GetAssetPath(@object);
+
+            var isAsset = !string.IsNullOrEmpty(assetPath);
+            if (isAsset)
+            {
+                var mainAssetType =
+                    AssetDatabase.GetMainAssetTypeAtPath(assetPath);
+
+                var isSceneAsset = mainAssetType == typeof(SceneAsset);
+                if (isSceneAsset)
+                {
+                    return Enumerable.Repeat(@object, 1);
+                }
+
+                return AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            }
+
+            return Enumerable.Repeat(@object, 1);
+        }
+
+        //----------------------------------------------------------------------
+
+        private static void ApplyToComponents(GameObject gameObject)
         {
             foreach (var component in gameObject.GetComponents<Component>())
                 ApplyToType(component.GetType());
@@ -89,10 +106,10 @@ namespace UnityExtensions
         private static void ApplyToSelection()
         {
             foreach (var @object in Selection.objects)
-                ApplyToObject(@object);
+                ApplyToObjectAndSubobjects(@object);
 
             foreach (var gameObject in Selection.gameObjects)
-                ApplyToGameObject(gameObject);
+                ApplyToComponents(gameObject);
         }
 
         //----------------------------------------------------------------------

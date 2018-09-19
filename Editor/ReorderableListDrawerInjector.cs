@@ -58,14 +58,41 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
+        private static void ApplyToObject(Object @object)
+        {
+            if (@object == null)
+                return;
+
+            var assetPath = AssetDatabase.GetAssetPath(@object);
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                ApplyToType(@object.GetType());
+                return;
+            }
+
+            var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            foreach (var asset in assets)
+                if (asset != null)
+                    ApplyToType(asset.GetType());
+        }
+
+        //----------------------------------------------------------------------
+
+        private static void ApplyToGameObject(GameObject gameObject)
+        {
+            foreach (var component in gameObject.GetComponents<Component>())
+                ApplyToType(component.GetType());
+        }
+
+        //----------------------------------------------------------------------
+
         private static void ApplyToSelection()
         {
             foreach (var @object in Selection.objects)
-                ApplyToType(@object.GetType());
+                ApplyToObject(@object);
 
             foreach (var gameObject in Selection.gameObjects)
-                foreach (var component in gameObject.GetComponents<Component>())
-                    ApplyToType(component.GetType());
+                ApplyToGameObject(gameObject);
         }
 
         //----------------------------------------------------------------------
@@ -77,7 +104,7 @@ namespace UnityExtensions
                 BindingFlags.Public |
                 BindingFlags.NonPublic;
             do foreach (var field in type.GetFields(bindingFlags))
-                yield return field;
+                    yield return field;
             while ((type = type.BaseType) != null);
         }
 

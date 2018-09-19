@@ -64,7 +64,7 @@ namespace UnityExtensions
                 return;
 
             var assetPath = AssetDatabase.GetAssetPath(@object);
-            if (string.IsNullOrEmpty(assetPath))
+            if (string.IsNullOrEmpty(assetPath) || assetPath.EndsWith(".unity"))
             {
                 ApplyToType(@object.GetType());
                 return;

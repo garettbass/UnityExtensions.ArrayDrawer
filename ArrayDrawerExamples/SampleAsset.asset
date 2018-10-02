@@ -3,7 +3,7 @@
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -27,7 +27,7 @@ MonoBehaviour:
 --- !u!114 &114088678537567340
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -40,7 +40,7 @@ MonoBehaviour:
 --- !u!114 &114132585077220602
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -48,12 +48,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25494b6d647e440aca63c2314d44a83d, type: 3}
   m_Name: SampleSubassetWithVectorAndColorArrays
   m_EditorClassIdentifier: 
-  vector3Array: []
-  colorArray: []
+  vector3Array:
+  - {x: 1, y: 0, z: 0}
+  - {x: 0, y: 1, z: 0}
+  - {x: 0, y: 1, z: 1}
+  colorArray:
+  - {r: 1, g: 0, b: 0, a: 0}
+  - {r: 0, g: 1, b: 0, a: 0}
+  - {r: 0, g: 0, b: 1, a: 0}
 --- !u!114 &114144228798714784
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -62,4 +68,7 @@ MonoBehaviour:
   m_Name: SampleSubassetWithDoubleArray
   m_EditorClassIdentifier: 
   doubleValue: 0
-  doubleArray: []
+  doubleArray:
+  - 1
+  - 2
+  - 3

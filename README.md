@@ -2,6 +2,10 @@
 
 ![Before & After](Before-After.png)
 
+## Installation
+
+Just clone this repo somewhere inside your Unity project's `Assets` folder.
+
 ## `ArrayDrawer`
 
 To customize the editing experience for a member variable, you can implement a property drawer class that derives from the [UnityEditor.PropertyDrawer](https://docs.unity3d.com/ScriptReference/PropertyDrawer.html) base class.  However, when a property drawer is specified for an array or list, Unity associates that property drawer with the elements of the array or list, not the array or list itself.

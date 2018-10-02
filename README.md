@@ -6,7 +6,7 @@
 
 To customize the editing experience for a member variable, you can implement a property drawer class that derives from the [UnityEditor.PropertyDrawer](https://docs.unity3d.com/ScriptReference/PropertyDrawer.html) base class.  However, when a property drawer is specified for an array or list, Unity associates that property drawer with the elements of the array or list, not the array or list itself.
 
-I created the `UnityExtensions.ArrayDrawer` base class to enable the creation of property drawers that customize the editing experience for arrays and lists.
+I created the `UnityExtensions.ArrayDrawer` base class to enable the creation of property drawers that customize the editing experience for arrays and lists.  The provided `ReorderableListDrawer` derives from `ArrayDrawer` to do its business, but you can just as easily implement other sorts of array and list UI customizations.  For example, in one project where I use this library, I have implemented `EnumeratedArrayDrawer` which provides a named array element for each value of the provided `enum` type.
 
 ## `ReorderableListDrawer`
 

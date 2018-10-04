@@ -7,6 +7,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
+using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace UnityExtensions
@@ -21,6 +22,29 @@ namespace UnityExtensions
             s_drawerKeySetDictionary.Add(typeof(List<>), s_drawerKeySet);
             ApplyToSelection();
             Selection.selectionChanged += ApplyToSelection;
+        }
+
+        //----------------------------------------------------------------------
+
+        private static Type[] s_concreteUnityObjectTypes;
+
+        private static Type[] concreteUnityObjectTypes
+        {
+            get
+            {
+                if (s_concreteUnityObjectTypes == null)
+                    s_concreteUnityObjectTypes =
+                        AppDomain
+                        .CurrentDomain
+                        .GetAssemblies()
+                        .SelectMany(a => a.GetTypes())
+                        .Where(t =>
+                            t.IsClass == true &&
+                            t.IsAbstract == false &&
+                            typeof(Object).IsAssignableFrom(t))
+                        .ToArray();
+                return s_concreteUnityObjectTypes;
+            }
         }
 
         //----------------------------------------------------------------------
@@ -54,11 +78,20 @@ namespace UnityExtensions
 
             foreach (var field in GetFields(type))
                 ApplyToType(field.FieldType);
+
+            if (typeof(Object).IsAssignableFrom(type))
+            {
+                var derivedUnityObjectTypes =
+                    concreteUnityObjectTypes
+                    .Where(t => type.IsAssignableFrom(t));
+                foreach (var derivedType in derivedUnityObjectTypes)
+                    ApplyToType(derivedType);
+            }
         }
 
         //----------------------------------------------------------------------
 
-        private static void ApplyToObjectAndSubobjects(Object @object)
+        private static void ApplyToObjectAndSubobjectTypes(Object @object)
         {
             foreach (var subobject in EnumerateObjectAndSubobjects(@object))
                 if (subobject != null)
@@ -106,7 +139,7 @@ namespace UnityExtensions
         private static void ApplyToSelection()
         {
             foreach (var @object in Selection.objects)
-                ApplyToObjectAndSubobjects(@object);
+                ApplyToObjectAndSubobjectTypes(@object);
 
             foreach (var gameObject in Selection.gameObjects)
                 ApplyToComponents(gameObject);

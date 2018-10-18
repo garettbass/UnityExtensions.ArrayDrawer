@@ -28,7 +28,7 @@ namespace UnityExtensions
             if (property.isExpanded && HasVisibleChildFields(property))
             {
                 var spacing = EditorGUIUtility.standardVerticalSpacing;
-                foreach (var child in EnumerateChildProperties(property))
+                foreach (var child in property.EnumerateChildProperties())
                 {
                     height += spacing;
                     height +=
@@ -59,7 +59,7 @@ namespace UnityExtensions
 
                 using (IndentLevelScope())
                 {
-                    foreach (var child in EnumerateChildProperties(property))
+                    foreach (var child in property.EnumerateChildProperties())
                     {
                         position.y += spacing;
                         position.y += position.height;
@@ -79,34 +79,6 @@ namespace UnityExtensions
                     }
                 }
             }
-        }
-
-        //----------------------------------------------------------------------
-
-        protected static IEnumerable<SerializedProperty>
-        EnumerateChildProperties(SerializedProperty parentProperty)
-        {
-            var iterator = parentProperty.Copy();
-            var end = iterator.GetEndProperty();
-            if (iterator.NextVisible(enterChildren: true))
-            {
-                do
-                {
-                    if (SerializedProperty.EqualContents(iterator, end))
-                        yield break;
-
-                    yield return iterator;
-                }
-                while (iterator.NextVisible(enterChildren: false));
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        protected static IEnumerable<SerializedProperty>
-        EnumerateElementProperties(SerializedProperty arrayProperty)
-        {
-            return EnumerateChildProperties(arrayProperty).Skip(1);
         }
 
         //----------------------------------------------------------------------

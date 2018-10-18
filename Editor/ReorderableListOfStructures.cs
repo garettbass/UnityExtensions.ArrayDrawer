@@ -37,7 +37,7 @@ namespace UnityExtensions
 
             var count = 0;
             var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in EnumerateChildProperties(element))
+            foreach (var property in element.EnumerateChildProperties())
             {
                 if (count++ > 0)
                     height += spacing;
@@ -66,7 +66,7 @@ namespace UnityExtensions
 
             var count = 0;
             var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in EnumerateChildProperties(element))
+            foreach (var property in element.EnumerateChildProperties())
             {
                 if (count++ > 0)
                     position.y += spacing;
@@ -164,26 +164,6 @@ namespace UnityExtensions
                 titleRect.yMin -= 1;
                 titleRect.width = titleWidth;
                 titleStyle.Draw(titleRect, titleContent, false, false, false, false);
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        private static IEnumerable<SerializedProperty>
-        EnumerateChildProperties(SerializedProperty parentProperty)
-        {
-            var iterator = parentProperty.Copy();
-            var end = iterator.GetEndProperty();
-            if (iterator.NextVisible(enterChildren: true))
-            {
-                do
-                {
-                    if (SerializedProperty.EqualContents(iterator, end))
-                        yield break;
-
-                    yield return iterator;
-                }
-                while (iterator.NextVisible(enterChildren: false));
             }
         }
 

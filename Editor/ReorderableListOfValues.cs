@@ -60,6 +60,7 @@ namespace UnityExtensions
 
             onAddCallback = OnAddCallback;
             onCanRemoveCallback = OnCanRemoveCallback;
+            onRemoveCallback = OnRemoveCallback;
 
 #if UNITY_2018_1_OR_NEWER
             drawNoneElementCallback = DrawEmptyElementCallback;
@@ -145,6 +146,41 @@ namespace UnityExtensions
             return serializedProperty.isExpanded;
         }
 
+        private void OnRemoveCallback(ReorderableList list)
+        {
+            DeleteElement(index);
+        }
+
+        //----------------------------------------------------------------------
+
+        protected virtual void DeleteElement(int elementIndex)
+        {
+            if (elementIndex < 0)
+                return;
+
+            var array = serializedProperty;
+            if (elementIndex < array.arraySize)
+            {
+                var serializedObject = array.serializedObject;
+                var element = array.GetArrayElementAtIndex(elementIndex);
+                var didReferenceSubassets = element.DoesReferenceSubassets();
+                array.DeleteArrayElementAtIndex(elementIndex);
+                if (didReferenceSubassets)
+                {
+                    serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                    serializedObject.DestroyUnreferencedSubassetsInAsset();
+                }
+                else
+                {
+                    serializedObject.ApplyModifiedProperties();
+                }
+
+                var length = array.arraySize;
+                if (index > length - 1)
+                    index = length - 1;
+            }
+        }
+
         //----------------------------------------------------------------------
 
         protected virtual float GetElementHeight(
@@ -212,19 +248,19 @@ namespace UnityExtensions
             GenericMenu menu,
             int elementIndex)
         {
-            var property = serializedProperty;
-            var serializedObject = property.serializedObject;
+            var array = serializedProperty;
+            var serializedObject = array.serializedObject;
             if (displayAdd)
             {
                 menu.AddItem(new GUIContent("Insert Above"), false, () =>
                 {
-                    property.InsertArrayElementAtIndex(elementIndex);
+                    array.InsertArrayElementAtIndex(elementIndex);
                     serializedObject.ApplyModifiedProperties();
                     index = elementIndex;
                 });
                 menu.AddItem(new GUIContent("Insert Below"), false, () =>
                 {
-                    property.InsertArrayElementAtIndex(elementIndex + 1);
+                    array.InsertArrayElementAtIndex(elementIndex + 1);
                     serializedObject.ApplyModifiedProperties();
                     index = elementIndex + 1;
                 });
@@ -238,9 +274,7 @@ namespace UnityExtensions
             {
                 menu.AddItem(new GUIContent("Remove"), false, () =>
                 {
-                    property.DeleteArrayElementAtIndex(elementIndex);
-                    serializedObject.ApplyModifiedProperties();
-                    index = -1;
+                    DeleteElement(elementIndex);
                 });
             }
         }
@@ -637,24 +671,41 @@ namespace UnityExtensions
             }
         }
 
-        protected Deferred ColorScope(Color newColor)
+        protected static Deferred ColorScope(Color newColor)
         {
             var oldColor = GUI.color;
             GUI.color = newColor;
             return new Deferred(() => GUI.color = oldColor);
         }
 
-        protected Deferred ColorAlphaScope(float a)
+        protected static Deferred ColorAlphaScope(float a)
         {
             var oldColor = GUI.color;
             GUI.color = new Color(1, 1, 1, a);
             return new Deferred(() => GUI.color = oldColor);
         }
 
-        protected IDisposable IndentLevelScope(int indent = 1)
+        protected static Deferred IndentLevelScope(int indent = 1)
         {
             EditorGUI.indentLevel += indent;
             return new Deferred(() => EditorGUI.indentLevel -= indent);
+        }
+
+        //======================================================================
+
+        protected static void TryDestroyImmediate(
+            Object obj,
+            bool allowDestroyingAssets = false)
+        {
+            try
+            {
+                if (obj != null)
+                    Object.DestroyImmediate(obj, allowDestroyingAssets);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
         }
 
     }

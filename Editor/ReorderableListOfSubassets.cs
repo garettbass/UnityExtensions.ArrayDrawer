@@ -35,8 +35,6 @@ namespace UnityExtensions
 
             m_UseFullSubassetTypeNames = SubassetTypeNamesAreAmbiguous();
 
-            onRemoveCallback = OnRemoveCallback;
-
             onCanAddCallback = OnCanAddCallback;
 
             if (m_SubassetTypes.Length == 1)
@@ -78,14 +76,13 @@ namespace UnityExtensions
             return Mathf.Max(height, elementHeight);
         }
 
-        private float GetSubassetHeight(
-            SerializedObject serializedObject)
+        private float GetSubassetHeight(SerializedObject serializedObject)
         {
             var height = 0f;
 
             var count = m_SubassetTypes.Length > 1 ? 1 : 0;
             var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in EnumerateChildProperties(serializedObject))
+            foreach (var property in serializedObject.EnumerateChildProperties())
             {
                 if (count++ > 0)
                     height += spacing;
@@ -135,7 +132,7 @@ namespace UnityExtensions
 
             var count = m_SubassetTypes.Length > 1 ? 1 : 0;
             var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in EnumerateChildProperties(serializedObject))
+            foreach (var property in serializedObject.EnumerateChildProperties())
             {
                 if (count++ > 0)
                     position.y += spacing;
@@ -180,8 +177,7 @@ namespace UnityExtensions
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Remove"), false, () =>
             {
-                RemoveSubasset();
-                index = -1;
+                DeleteElement(elementIndex);
             });
         }
 
@@ -287,11 +283,6 @@ namespace UnityExtensions
             menu.DropDown(position);
         }
 
-        private void OnRemoveCallback(ReorderableList list)
-        {
-            RemoveSubasset();
-        }
-
         //----------------------------------------------------------------------
 
         private void AddSubasset(Type subassetType)
@@ -340,31 +331,30 @@ namespace UnityExtensions
             AssetDatabase.AddObjectToAsset(subasset, assetPath);
 
             var element = array.GetArrayElementAtIndex(elementIndex);
-            element.objectReferenceInstanceIDValue = subasset.GetInstanceID();
-
+            element.objectReferenceValue = subasset;
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            serializedObject.DestroyUnreferencedSubassetsInAsset();
         }
 
-        private void RemoveSubasset()
+        protected override void DeleteElement(int elementIndex)
         {
+            if (elementIndex < 0)
+                return;
+
             var array = serializedProperty;
-            var serializedObject = array.serializedObject;
-
-            var element = array.GetArrayElementAtIndex(index);
-            var subasset = element.objectReferenceValue;
-            if (subasset != null)
+            if (elementIndex < array.arraySize)
             {
+                var serializedObject = array.serializedObject;
+                var element = array.GetArrayElementAtIndex(elementIndex);
                 element.objectReferenceValue = null;
-                Object.DestroyImmediate(subasset, allowDestroyingAssets: true);
+                array.DeleteArrayElementAtIndex(elementIndex);
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                serializedObject.DestroyUnreferencedSubassetsInAsset();
+
+                var length = array.arraySize;
+                if (index > length - 1)
+                    index = length - 1;
             }
-
-            array.DeleteArrayElementAtIndex(index);
-
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-
-            var length = array.arraySize;
-            if (index > length - 1)
-                index = length - 1;
         }
 
         //----------------------------------------------------------------------
@@ -376,22 +366,6 @@ namespace UnityExtensions
                 elementTypeNames.Count() >
                 elementTypeNames.Distinct().Count();
             return elementTypeNamesAreAmbiguous;
-        }
-
-        //----------------------------------------------------------------------
-
-        private static IEnumerable<SerializedProperty> EnumerateChildProperties(
-            SerializedObject serializedObject)
-        {
-            var property = serializedObject.GetIterator();
-            if (property.NextVisible(enterChildren: true))
-            {
-                // yield return property; // skip "m_Script"
-                while (property.NextVisible(enterChildren: false))
-                {
-                    yield return property;
-                }
-            }
         }
 
         //----------------------------------------------------------------------

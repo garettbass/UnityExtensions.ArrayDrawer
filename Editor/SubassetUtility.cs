@@ -47,17 +47,33 @@ namespace UnityExtensions
         //----------------------------------------------------------------------
 
         public static void
-        DestroyUnreferencedSubassetsInAsset(
-            this SerializedObject serializedObject)
+        DestroyUnreferencedSubassets(
+            this SerializedObject serializedObject,
+            IEnumerable<Object> candidateSubassets)
         {
             var targetObject = serializedObject.targetObject;
             var assetPath = AssetDatabase.GetAssetPath(targetObject);
             var mainAsset = AssetDatabase.LoadMainAssetAtPath(assetPath);
-            var localAssets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
-            var referencedAssets = new HashSet<Object>();
-            AddReferencedSubassets(referencedAssets, localAssets, mainAsset);
-            var unreferencedAssets = localAssets.Except(referencedAssets);
-            foreach (var unreferencedAsset in unreferencedAssets)
+            var allSubassets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            var referencedSubassets = new HashSet<Object>();
+            AddReferencedSubassets(referencedSubassets, allSubassets, mainAsset);
+            var unreferencedSubassets = candidateSubassets.Except(referencedSubassets);
+            foreach (var unreferencedAsset in unreferencedSubassets)
+                TryDestroyImmediate(unreferencedAsset);
+        }
+
+        //----------------------------------------------------------------------
+
+        public static void
+        DestroyAllUnreferencedSubassetsInAsset(this Object asset)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(asset);
+            var mainAsset = AssetDatabase.LoadMainAssetAtPath(assetPath);
+            var allSubassets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            var referencedSubassets = new HashSet<Object>();
+            AddReferencedSubassets(referencedSubassets, allSubassets, mainAsset);
+            var unreferencedSubassets = allSubassets.Except(referencedSubassets);
+            foreach (var unreferencedAsset in unreferencedSubassets)
                 TryDestroyImmediate(unreferencedAsset);
         }
 
@@ -66,13 +82,13 @@ namespace UnityExtensions
         private static void
         AddReferencedSubassets(
             HashSet<Object> referencedSubassets,
-            Object[] localAssets,
+            Object[] allSubassets,
             Object asset)
         {
             if (asset == null)
                 return;
 
-            if (!localAssets.Contains(asset))
+            if (!allSubassets.Contains(asset))
                 return;
 
             if (!referencedSubassets.Add(asset))
@@ -83,21 +99,21 @@ namespace UnityExtensions
             foreach (var child in children)
                 AddReferencedSubassets(
                     referencedSubassets,
-                    localAssets,
+                    allSubassets,
                     child);
         }
 
         private static void
         AddReferencedSubassets(
             HashSet<Object> referencedSubassets,
-            Object[] localAssets,
+            Object[] allSubassets,
             SerializedProperty property)
         {
             if (property.propertyType == SerializedPropertyType.ObjectReference)
             {
                 AddReferencedSubassets(
                     referencedSubassets,
-                    localAssets,
+                    allSubassets,
                     property.objectReferenceValue);
             }
             else
@@ -106,7 +122,7 @@ namespace UnityExtensions
                 foreach (var child in children)
                     AddReferencedSubassets(
                         referencedSubassets,
-                        localAssets,
+                        allSubassets,
                         child);
             }
         }

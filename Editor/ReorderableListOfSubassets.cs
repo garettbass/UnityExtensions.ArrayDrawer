@@ -331,9 +331,17 @@ namespace UnityExtensions
             AssetDatabase.AddObjectToAsset(subasset, assetPath);
 
             var element = array.GetArrayElementAtIndex(elementIndex);
+            var oldSubassets = element.FindReferencedSubassets();
             element.objectReferenceValue = subasset;
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            serializedObject.DestroyUnreferencedSubassetsInAsset();
+            if (oldSubassets.Any())
+            {
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                serializedObject.DestroyUnreferencedSubassets(oldSubassets);
+            }
+            else
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
         }
 
         protected override void DeleteElement(int elementIndex)
@@ -346,10 +354,18 @@ namespace UnityExtensions
             {
                 var serializedObject = array.serializedObject;
                 var element = array.GetArrayElementAtIndex(elementIndex);
+                var oldSubassets = element.FindReferencedSubassets();
                 element.objectReferenceValue = null;
                 array.DeleteArrayElementAtIndex(elementIndex);
-                serializedObject.ApplyModifiedPropertiesWithoutUndo();
-                serializedObject.DestroyUnreferencedSubassetsInAsset();
+                if (oldSubassets.Any())
+                {
+                    serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                    serializedObject.DestroyUnreferencedSubassets(oldSubassets);
+                }
+                else
+                {
+                    serializedObject.ApplyModifiedProperties();
+                }
 
                 var length = array.arraySize;
                 if (index > length - 1)

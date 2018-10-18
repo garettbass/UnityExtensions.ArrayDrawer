@@ -163,12 +163,12 @@ namespace UnityExtensions
             {
                 var serializedObject = array.serializedObject;
                 var element = array.GetArrayElementAtIndex(elementIndex);
-                var didReferenceSubassets = element.DoesReferenceSubassets();
+                var oldSubassets = element.FindReferencedSubassets();
                 array.DeleteArrayElementAtIndex(elementIndex);
-                if (didReferenceSubassets)
+                if (oldSubassets.Any())
                 {
                     serializedObject.ApplyModifiedPropertiesWithoutUndo();
-                    serializedObject.DestroyUnreferencedSubassetsInAsset();
+                    serializedObject.DestroyUnreferencedSubassets(oldSubassets);
                 }
                 else
                 {

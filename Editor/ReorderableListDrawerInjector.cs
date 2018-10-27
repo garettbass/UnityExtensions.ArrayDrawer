@@ -99,7 +99,7 @@ namespace UnityExtensions
 
         private static object CreateDrawerKeySet()
         {
-            using (TimedScope.Begin())
+            // using (TimedScope.Begin())
             {
                 var DrawerKeySet =
                     typeof(PropertyDrawer)
@@ -140,7 +140,7 @@ namespace UnityExtensions
 
         private static IDictionary GetDrawerKeySetDictionary()
         {
-            using (TimedScope.Begin())
+            // using (TimedScope.Begin())
             {
                 var ScriptAttributeUtility =
                     typeof(PropertyDrawer)

@@ -110,12 +110,7 @@ namespace UnityExtensions
 
             if (showElementHeader || m_SubassetTypes.Length > 1)
             {
-                DrawElementHeader(
-                    position,
-                    subasset,
-                    serializedObject,
-                    isActive
-                );
+                DrawElementHeader(position, subasset, isActive);
                 position.y += headerHeight;
             }
 
@@ -186,13 +181,19 @@ namespace UnityExtensions
         private void DrawElementHeader(
             Rect position,
             Object subasset,
-            SerializedObject serializedObject,
             bool isActive)
         {
+            var subassetType = subasset?.GetType() ?? typeof(Object);
             position.height = headerHeight;
 
             var titleContent = m_TitleContent;
-            titleContent.text = ObjectNames.NicifyVariableName(subasset.name);
+            titleContent.text =
+                ObjectNames
+                .NicifyVariableName(subasset.name);
+            titleContent.image =
+                EditorGUIUtility
+                .ObjectContent(subasset, subassetType)
+                .image;
 
             var titleStyle = EditorStyles.boldLabel;
 
@@ -202,16 +203,15 @@ namespace UnityExtensions
             scriptRect.yMin -= 1;
             scriptRect.yMax -= 1;
             scriptRect.width = titleWidth + 16;
-            var scriptProperty = serializedObject.FindProperty("m_Script");
 
             using (ColorAlphaScope(0))
             {
                 EditorGUI.BeginDisabledGroup(disabled: true);
-                EditorGUI.PropertyField(
+                EditorGUI.ObjectField(
                     scriptRect,
-                    scriptProperty,
-                    GUIContent.none
-                );
+                    subasset,
+                    subassetType,
+                    allowSceneObjects: false);
                 EditorGUI.EndDisabledGroup();
             }
 
@@ -229,15 +229,10 @@ namespace UnityExtensions
                     fillStyle.Draw(fillRect, false, false, false, false);
                 }
 
-                var embossStyle = EditorStyles.whiteBoldLabel;
-                var embossRect = position;
-                embossRect.yMin -= 0;
-                EditorGUI.BeginDisabledGroup(true);
-                embossStyle.Draw(embossRect, titleContent, false, false, false, false);
-                EditorGUI.EndDisabledGroup();
-
                 var titleRect = position;
-                titleRect.yMin -= 1;
+                titleRect.xMin -= 4;
+                titleRect.yMin -= 2;
+                titleRect.yMax += 1;
                 titleRect.width = titleWidth;
                 titleStyle.Draw(titleRect, titleContent, false, false, false, false);
             }
@@ -296,7 +291,6 @@ namespace UnityExtensions
         private void InsertSubasset(Type subassetType, int elementIndex)
         {
             var array = serializedProperty;
-            var serializedObject = array.serializedObject;
 
             array.InsertArrayElementAtIndex(elementIndex);
             index = elementIndex;
@@ -321,14 +315,10 @@ namespace UnityExtensions
                 return;
             }
 
-            subasset.name =
-                m_UseFullSubassetTypeNames
-                ? subassetType.FullName
-                : subassetType.Name;
+            subasset.name = subassetType.Name;
 
-            var asset = serializedObject.targetObject;
-            var assetPath = AssetDatabase.GetAssetPath(asset);
-            AssetDatabase.AddObjectToAsset(subasset, assetPath);
+            var serializedObject = array.serializedObject;
+            serializedObject.targetObject.AddSubasset(subasset);
 
             var element = array.GetArrayElementAtIndex(elementIndex);
             var oldSubassets = element.FindReferencedSubassets();

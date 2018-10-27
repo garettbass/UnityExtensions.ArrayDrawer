@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
@@ -20,41 +19,41 @@ namespace UnityExtensions
         private static void InitializeOnLoad()
         {
             s_drawerKeySetDictionary.Add(typeof(List<>), s_drawerKeySet);
-            ApplyToSelection();
-            Selection.selectionChanged += ApplyToSelection;
+            ApplyToUnityObjectTypes();
+        }
+
+        private static void ApplyToUnityObjectTypes()
+        {
+            var objectAssembly =
+                typeof(Object).Assembly;
+            var objectAssemblyFullName =
+                objectAssembly.GetName().FullName;
+            var candidateAssemblies =
+                AppDomain
+                .CurrentDomain
+                .GetAssemblies()
+                .Where(assembly =>
+                    assembly
+                    .GetReferencedAssemblies()
+                    .Any(r => r.FullName == objectAssemblyFullName));
+            var concreteUnityObjectTypes =
+                candidateAssemblies
+                .SelectMany(a => a.GetTypes())
+                .Where(t =>
+                    t.IsClass == true &&
+                    t.IsAbstract == false &&
+                    typeof(Object).IsAssignableFrom(t))
+                .ToArray();
+            var visited = new HashSet<Type>();
+            foreach (var objectType in concreteUnityObjectTypes)
+                ApplyToType(visited, objectType);
         }
 
         //----------------------------------------------------------------------
 
-        private static Type[] s_concreteUnityObjectTypes;
-
-        private static Type[] concreteUnityObjectTypes
+        private static void ApplyToType(HashSet<Type> visited, Type type)
         {
-            get
-            {
-                if (s_concreteUnityObjectTypes == null)
-                    s_concreteUnityObjectTypes =
-                        AppDomain
-                        .CurrentDomain
-                        .GetAssemblies()
-                        .SelectMany(a => a.GetTypes())
-                        .Where(t =>
-                            t.IsClass == true &&
-                            t.IsAbstract == false &&
-                            typeof(Object).IsAssignableFrom(t))
-                        .ToArray();
-                return s_concreteUnityObjectTypes;
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        private static readonly HashSet<Type> s_visitedTypes =
-            new HashSet<Type>();
-
-        internal static void ApplyToType(Type type)
-        {
-            if (s_visitedTypes.Add(type) == false)
+            if (visited.Add(type) == false)
                 return;
 
             if (type.IsArray)
@@ -62,7 +61,7 @@ namespace UnityExtensions
                 if (s_drawerKeySetDictionary.Contains(type) == false)
                     s_drawerKeySetDictionary.Add(type, s_drawerKeySet);
 
-                ApplyToType(type.GetElementType());
+                ApplyToType(visited, type.GetElementType());
                 return;
             }
 
@@ -72,77 +71,12 @@ namespace UnityExtensions
                 if (s_drawerKeySetDictionary.Contains(type) == false)
                     s_drawerKeySetDictionary.Add(type, s_drawerKeySet);
 
-                ApplyToType(type.GetGenericArguments()[0]);
+                ApplyToType(visited, type.GetGenericArguments()[0]);
                 return;
             }
 
             foreach (var field in GetFields(type))
-                ApplyToType(field.FieldType);
-
-            if (typeof(Object).IsAssignableFrom(type))
-            {
-                var derivedUnityObjectTypes =
-                    concreteUnityObjectTypes
-                    .Where(t => type.IsAssignableFrom(t));
-                foreach (var derivedType in derivedUnityObjectTypes)
-                    ApplyToType(derivedType);
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        private static void ApplyToObjectAndSubobjectTypes(Object @object)
-        {
-            foreach (var subobject in EnumerateObjectAndSubobjects(@object))
-                if (subobject != null)
-                    ApplyToType(subobject.GetType());
-        }
-
-        //----------------------------------------------------------------------
-
-        private static IEnumerable<Object> EnumerateObjectAndSubobjects(
-            Object @object)
-        {
-            if (@object == null)
-                return Enumerable.Empty<Object>();
-
-            var assetPath = AssetDatabase.GetAssetPath(@object);
-
-            var isAsset = !string.IsNullOrEmpty(assetPath);
-            if (isAsset)
-            {
-                var mainAssetType =
-                    AssetDatabase.GetMainAssetTypeAtPath(assetPath);
-
-                var isSceneAsset = mainAssetType == typeof(SceneAsset);
-                if (isSceneAsset)
-                {
-                    return Enumerable.Repeat(@object, 1);
-                }
-
-                return AssetDatabase.LoadAllAssetsAtPath(assetPath);
-            }
-
-            return Enumerable.Repeat(@object, 1);
-        }
-
-        //----------------------------------------------------------------------
-
-        private static void ApplyToComponents(GameObject gameObject)
-        {
-            foreach (var component in gameObject.GetComponents<Component>())
-                ApplyToType(component.GetType());
-        }
-
-        //----------------------------------------------------------------------
-
-        private static void ApplyToSelection()
-        {
-            foreach (var @object in Selection.objects)
-                ApplyToObjectAndSubobjectTypes(@object);
-
-            foreach (var gameObject in Selection.gameObjects)
-                ApplyToComponents(gameObject);
+                ApplyToType(visited, field.FieldType);
         }
 
         //----------------------------------------------------------------------
@@ -153,9 +87,9 @@ namespace UnityExtensions
                 BindingFlags.Instance |
                 BindingFlags.Public |
                 BindingFlags.NonPublic;
-            do foreach (var field in type.GetFields(bindingFlags))
+            for (; type != null; type = type.BaseType)
+                foreach (var field in type.GetFields(bindingFlags))
                     yield return field;
-            while ((type = type.BaseType) != null);
         }
 
         //----------------------------------------------------------------------
@@ -165,7 +99,7 @@ namespace UnityExtensions
 
         private static object CreateDrawerKeySet()
         {
-            // using (TimedScope.Begin())
+            using (TimedScope.Begin())
             {
                 var DrawerKeySet =
                     typeof(PropertyDrawer)
@@ -206,7 +140,7 @@ namespace UnityExtensions
 
         private static IDictionary GetDrawerKeySetDictionary()
         {
-            // using (TimedScope.Begin())
+            using (TimedScope.Begin())
             {
                 var ScriptAttributeUtility =
                     typeof(PropertyDrawer)

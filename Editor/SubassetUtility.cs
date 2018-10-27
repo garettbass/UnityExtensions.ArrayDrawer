@@ -12,6 +12,49 @@ namespace UnityExtensions
     internal static class SubassetUtility
     {
 
+        public static string GetAssetPath(this Object asset)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(asset);
+            if (!string.IsNullOrEmpty(assetPath))
+                return assetPath;
+
+        #if UNITY_2018_3_OR_NEWER
+            if (PrefabUtility.IsPartOfPrefabAsset(asset))
+                assetPath =
+                    PrefabUtility
+                    .GetPrefabAssetPathOfNearestInstanceRoot(asset);
+        #else
+            var prefabRoot = PrefabUtility.GetPrefabObject(asset);
+            if (prefabRoot != null)
+                assetPath =
+                    AssetDatabase
+                    .GetAssetPath(prefabRoot);
+        #endif
+
+            if (!string.IsNullOrEmpty(assetPath))
+                return assetPath;
+
+            var gameObject =
+                (asset as GameObject) ??
+                (asset as Component)?.gameObject;
+            if (gameObject != null)
+                return gameObject.scene.path;
+
+            return null;
+        }
+
+        //----------------------------------------------------------------------
+
+        public static void AddSubasset(this Object asset, Object subasset)
+        {
+            var assetPath = asset.GetAssetPath();
+            Debug.Assert(assetPath != null);
+            AssetDatabase.AddObjectToAsset(subasset, assetPath);
+            AssetDatabase.ImportAsset(assetPath);
+        }
+
+        //----------------------------------------------------------------------
+
         public static void TryDestroyImmediate(this Object asset)
         {
             try
@@ -60,6 +103,7 @@ namespace UnityExtensions
             var unreferencedSubassets = candidateSubassets.Except(referencedSubassets);
             foreach (var unreferencedAsset in unreferencedSubassets)
                 TryDestroyImmediate(unreferencedAsset);
+            AssetDatabase.ImportAsset(assetPath);
         }
 
         //----------------------------------------------------------------------

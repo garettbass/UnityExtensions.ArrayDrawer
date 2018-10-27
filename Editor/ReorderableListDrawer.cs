@@ -196,10 +196,6 @@ namespace UnityExtensions
                         )
                         .ToArray();
 
-                    foreach (var subassetType in subassetTypes)
-                        ReorderableListDrawerInjector
-                        .ApplyToType(subassetType);
-
                     return
                         new ReorderableListOfSubassets(
                             property,

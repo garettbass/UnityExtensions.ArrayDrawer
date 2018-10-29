@@ -28,7 +28,7 @@ namespace UnityExtensions
             if (property.isExpanded && HasVisibleChildFields(property))
             {
                 var spacing = EditorGUIUtility.standardVerticalSpacing;
-                foreach (var child in property.EnumerateChildProperties())
+                foreach (var child in EnumerateChildProperties(property))
                 {
                     height += spacing;
                     height +=
@@ -59,7 +59,7 @@ namespace UnityExtensions
 
                 using (IndentLevelScope())
                 {
-                    foreach (var child in property.EnumerateChildProperties())
+                    foreach (var child in EnumerateChildProperties(property))
                     {
                         position.y += spacing;
                         position.y += position.height;
@@ -79,6 +79,24 @@ namespace UnityExtensions
                     }
                 }
             }
+        }
+
+        //----------------------------------------------------------------------
+
+        protected static IEnumerable<SerializedProperty>
+        EnumerateChildProperties(SerializedProperty parentProperty)
+        {
+            return
+                SerializedPropertyUtility
+                .EnumerateChildProperties(parentProperty);
+        }
+
+        //----------------------------------------------------------------------
+
+        protected static IEnumerable<SerializedProperty>
+        EnumerateElementProperties(SerializedProperty arrayProperty)
+        {
+            return EnumerateChildProperties(arrayProperty).Skip(1);
         }
 
         //----------------------------------------------------------------------

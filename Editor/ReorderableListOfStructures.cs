@@ -15,11 +15,16 @@ namespace UnityExtensions
     internal class ReorderableListOfStructures : ReorderableListOfValues
     {
 
+        public override bool showElementHeader => hasElementHeaderFormat;
+
+        protected float idealLabelWidth;
+
         public ReorderableListOfStructures(
+            ReorderableListAttribute attribute,
             SerializedProperty property,
             Type listType,
             Type elementType)
-        : base(property, listType, elementType)
+        : base(attribute, property, listType, elementType)
         { }
 
         //----------------------------------------------------------------------
@@ -28,86 +33,80 @@ namespace UnityExtensions
             SerializedProperty element,
             int elementIndex)
         {
+            var properties = element.EnumerateChildProperties();
+            return GetElementHeight(properties);
+        }
+
+        protected float GetElementHeight(
+            IEnumerable<SerializedProperty> properties)
+        {
+            var spacing = EditorGUIUtility.standardVerticalSpacing;
             var height = 0f;
 
             if (showElementHeader)
             {
-                height += headerHeight;
+                height += headerHeight + spacing;
             }
 
-            var count = 0;
-            var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in element.EnumerateChildProperties())
+            idealLabelWidth = 0f;
+            var labelStyle = EditorStyles.label;
+            var labelContent = new GUIContent();
+
+            var propertyCount = 0;
+            foreach (var property in properties)
             {
-                if (count++ > 0)
+                if (propertyCount++ > 0)
                     height += spacing;
 
                 height += GetPropertyHeight(property);
+
+                labelContent.text = property.displayName;
+                var minLabelWidth = labelStyle.CalcSize(labelContent).x;
+                idealLabelWidth = Mathf.Max(idealLabelWidth, minLabelWidth);
             }
+            idealLabelWidth += 8;
             return height;
         }
 
         //----------------------------------------------------------------------
 
+        protected override float drawElementIndent { get { return 12; } }
+
         protected override void DrawElement(
             Rect position,
             SerializedProperty element,
             int elementIndex,
-            bool isActive,
-            bool isFocused)
+            bool isActive)
         {
+            var properties = element.EnumerateChildProperties();
+            DrawElement(position, properties, elementIndex, isActive);
+        }
+
+        protected void DrawElement(
+            Rect position,
+            IEnumerable<SerializedProperty> properties,
+            int elementIndex,
+            bool isActive)
+        {
+            var spacing = EditorGUIUtility.standardVerticalSpacing;
             if (showElementHeader)
             {
                 DrawElementHeader(position, elementIndex, isActive);
-                position.y += headerHeight;
+                position.y += headerHeight + spacing;
             }
 
-            position.xMin += 12;
-
-            var count = 0;
-            var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in element.EnumerateChildProperties())
+            var labelWidth = Mathf.Min(idealLabelWidth, position.width * 0.4f);
+            using (LabelWidthScope(labelWidth))
             {
-                if (count++ > 0)
-                    position.y += spacing;
-
-                position.height = GetPropertyHeight(property);
-                PropertyField(position, property);
-                position.y += position.height;
-            }
-        }
-
-        //----------------------------------------------------------------------
-
-        protected static readonly new GUIStyle
-        ElementBackgroundStyle = "CN EntryBackEven";
-
-        protected override void DrawElementBackground(
-            Rect position,
-            SerializedProperty element,
-            int elementIndex,
-            bool isActive,
-            bool isFocused)
-        {
-            base.DrawElementBackground(
-                position,
-                element,
-                elementIndex,
-                isActive,
-                isFocused
-            );
-
-            if (IsRepaint() && element != null)
-            {
-                var fillStyle = ElementBackgroundStyle;
-                var fillRect = position;
-                fillRect.xMin += 2;
-                fillRect.xMax -= 2;
-                fillRect.yMin += 1;
-                fillRect.yMax -= 1;
-                using (ColorAlphaScope(isActive ? 0.5f : 1))
+                var propertyCount = 0;
+                foreach (var property in properties)
                 {
-                    fillStyle.Draw(fillRect, false, false, false, false);
+                    if (propertyCount++ > 0)
+                        position.y += spacing;
+
+                    position.height = GetPropertyHeight(property);
+                    PropertyField(position, property);
+                    position.y += position.height;
                 }
             }
         }
@@ -122,6 +121,7 @@ namespace UnityExtensions
             int elementIndex,
             bool isActive)
         {
+            position.xMin -= drawElementIndent;
             position.height = headerHeight;
 
             var titleContent = m_TitleContent;
@@ -164,6 +164,11 @@ namespace UnityExtensions
                 titleRect.yMin -= 1;
                 titleRect.width = titleWidth;
                 titleStyle.Draw(titleRect, titleContent, false, false, false, false);
+
+                var menuRect = position;
+                menuRect.xMin = menuRect.xMax - 16;
+                menuRect.yMin += 4;
+                ContextMenuButtonStyle.Draw(menuRect, false, false, false, false);
             }
         }
 

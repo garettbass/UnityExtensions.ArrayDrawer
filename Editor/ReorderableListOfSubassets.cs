@@ -20,16 +20,27 @@ namespace UnityExtensions
 
         private readonly Type[] m_SubassetTypes;
 
+        public bool hasSingleSubassetType =>
+            m_SubassetTypes.Length == 1;
+
+        public bool hasMultipleSubassetTypes =>
+            m_SubassetTypes.Length > 1;
+
         private readonly bool m_UseFullSubassetTypeNames;
+
+        public override bool showElementHeader =>
+            base.showElementHeader ||
+            hasMultipleSubassetTypes;
 
         //----------------------------------------------------------------------
 
         public ReorderableListOfSubassets(
+            ReorderableListAttribute attribute,
             SerializedProperty property,
             Type listType,
             Type elementType,
             Type[] subassetTypes)
-        : base(property, listType, elementType)
+        : base(attribute, property, listType, elementType)
         {
             m_SubassetTypes = subassetTypes;
 
@@ -37,10 +48,10 @@ namespace UnityExtensions
 
             onCanAddCallback = OnCanAddCallback;
 
-            if (m_SubassetTypes.Length == 1)
+            if (hasSingleSubassetType)
                 onAddCallback = OnAddCallback;
 
-            else if (m_SubassetTypes.Length > 1)
+            else if (hasMultipleSubassetTypes)
                 onAddDropdownCallback = OnAddDropdownCallback;
         }
 
@@ -62,35 +73,9 @@ namespace UnityExtensions
             if (subasset == null)
                 return EditorGUIUtility.singleLineHeight;
 
-            var height = 0f;
-
             var serializedObject = GetSerializedObjectFromCache(subasset);
-
-            if (showElementHeader || m_SubassetTypes.Length > 1)
-            {
-                height += headerHeight;
-            }
-
-            height += GetSubassetHeight(serializedObject);
-
-            return Mathf.Max(height, elementHeight);
-        }
-
-        private float GetSubassetHeight(SerializedObject serializedObject)
-        {
-            var height = 0f;
-
-            var count = m_SubassetTypes.Length > 1 ? 1 : 0;
-            var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in serializedObject.EnumerateChildProperties())
-            {
-                if (count++ > 0)
-                    height += spacing;
-
-                height += GetPropertyHeight(property);
-            }
-
-            return height;
+            var properties = serializedObject.EnumerateChildProperties();
+            return base.GetElementHeight(properties);
         }
 
         //----------------------------------------------------------------------
@@ -99,44 +84,16 @@ namespace UnityExtensions
             Rect position,
             SerializedProperty element,
             int elementIndex,
-            bool isActive,
-            bool isFocused)
+            bool isActive)
         {
             var subasset = element.objectReferenceValue;
             if (subasset == null)
                 return;
 
             var serializedObject = GetSerializedObjectFromCache(subasset);
-
-            if (showElementHeader || m_SubassetTypes.Length > 1)
-            {
-                DrawElementHeader(position, subasset, isActive);
-                position.y += headerHeight;
-            }
-
-            position.xMin += 12;
-
-            DrawSubasset(position, serializedObject);
-        }
-
-        private void DrawSubasset(
-            Rect position,
-            SerializedObject serializedObject)
-        {
             serializedObject.Update();
-
-            var count = m_SubassetTypes.Length > 1 ? 1 : 0;
-            var spacing = EditorGUIUtility.standardVerticalSpacing;
-            foreach (var property in serializedObject.EnumerateChildProperties())
-            {
-                if (count++ > 0)
-                    position.y += spacing;
-
-                position.height = GetPropertyHeight(property);
-                PropertyField(position, property);
-                position.y += position.height;
-            }
-
+            var properties = serializedObject.EnumerateChildProperties();
+            base.DrawElement(position, properties, elementIndex, isActive);
             serializedObject.ApplyModifiedProperties();
         }
 
@@ -159,21 +116,13 @@ namespace UnityExtensions
                 var insertBelow = "Insert Below/" + elementTypeName;
 
                 menu.AddItem(new GUIContent(insertAbove), false, () =>
-                {
-                    InsertSubasset(elementType, elementIndex);
-                    index = elementIndex;
-                });
+                    OnNextGUIFrame(() => InsertSubasset(elementType, elementIndex)));
                 menu.AddItem(new GUIContent(insertBelow), false, () =>
-                {
-                    InsertSubasset(elementType, elementIndex + 1);
-                    index = elementIndex + 1;
-                });
+                    OnNextGUIFrame(() => InsertSubasset(elementType, elementIndex + 1)));
             }
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Remove"), false, () =>
-            {
-                DeleteElement(elementIndex);
-            });
+                OnNextGUIFrame(() => DeleteElement(elementIndex)));
         }
 
         //----------------------------------------------------------------------
@@ -294,6 +243,7 @@ namespace UnityExtensions
 
             array.InsertArrayElementAtIndex(elementIndex);
             index = elementIndex;
+            GUI.changed = true;
 
             var subasset = default(Object);
 

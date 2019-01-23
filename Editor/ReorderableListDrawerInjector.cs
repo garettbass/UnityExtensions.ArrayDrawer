@@ -18,40 +18,49 @@ namespace UnityExtensions
         [InitializeOnLoadMethod]
         private static void InitializeOnLoad()
         {
+            UnityEngine.Profiling.Profiler.BeginSample("ReorderableListDrawerInjector");
             s_drawerKeySetDictionary.Add(typeof(List<>), s_drawerKeySet);
             ApplyToUnityObjectTypes();
+            UnityEngine.Profiling.Profiler.EndSample();
         }
 
         private static void ApplyToUnityObjectTypes()
         {
-            var objectAssembly =
-                typeof(Object).Assembly;
-            var objectAssemblyFullName =
-                objectAssembly.GetName().FullName;
-            var candidateAssemblies =
-                AppDomain
-                .CurrentDomain
-                .GetAssemblies()
-                .Where(assembly =>
-                    assembly
-                    .GetReferencedAssemblies()
-                    .Any(r => r.FullName == objectAssemblyFullName));
-            var concreteUnityObjectTypes =
-                candidateAssemblies
-                .SelectMany(a => a.GetTypes())
-                .Where(t =>
-                    t.IsClass == true &&
-                    t.IsAbstract == false &&
-                    typeof(Object).IsAssignableFrom(t))
-                .ToArray();
+            var objType = typeof(UnityEngine.Object);
+            var objAssembly = objType.Assembly;
+            var objAssemblyFullName = objAssembly.FullName;
+
             var visited = new HashSet<Type>();
-            foreach (var objectType in concreteUnityObjectTypes)
-                ApplyToType(visited, objectType);
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                if (AssemblyDependsOn(assembly, objAssemblyFullName))
+                    foreach (var type in assembly.GetTypes())
+                        if (type.IsClass &&
+                            type.IsAbstract == false &&
+                            objType.IsAssignableFrom(type))
+                            ApplyToArraysAndListsInType(visited, type);
         }
 
         //----------------------------------------------------------------------
 
-        private static void ApplyToType(HashSet<Type> visited, Type type)
+        private static bool AssemblyDependsOn(
+            Assembly assembly,
+            string dependencyFullName)
+        {
+            if (assembly.FullName == dependencyFullName)
+                return true;
+
+            foreach (var reference in assembly.GetReferencedAssemblies())
+                if (reference.FullName == dependencyFullName)
+                    return true;
+
+            return false;
+        }
+
+        //----------------------------------------------------------------------
+
+        private static void ApplyToArraysAndListsInType(
+            HashSet<Type> visited,
+            Type type)
         {
             if (visited.Add(type) == false)
                 return;
@@ -61,7 +70,7 @@ namespace UnityExtensions
                 if (s_drawerKeySetDictionary.Contains(type) == false)
                     s_drawerKeySetDictionary.Add(type, s_drawerKeySet);
 
-                ApplyToType(visited, type.GetElementType());
+                ApplyToArraysAndListsInType(visited, type.GetElementType());
                 return;
             }
 
@@ -71,25 +80,17 @@ namespace UnityExtensions
                 if (s_drawerKeySetDictionary.Contains(type) == false)
                     s_drawerKeySetDictionary.Add(type, s_drawerKeySet);
 
-                ApplyToType(visited, type.GetGenericArguments()[0]);
+                ApplyToArraysAndListsInType(visited, type.GetGenericArguments()[0]);
                 return;
             }
 
-            foreach (var field in GetFields(type))
-                ApplyToType(visited, field.FieldType);
-        }
-
-        //----------------------------------------------------------------------
-
-        private static IEnumerable<FieldInfo> GetFields(Type type)
-        {
             const BindingFlags bindingFlags =
                 BindingFlags.Instance |
                 BindingFlags.Public |
                 BindingFlags.NonPublic;
             for (; type != null; type = type.BaseType)
                 foreach (var field in type.GetFields(bindingFlags))
-                    yield return field;
+                    ApplyToArraysAndListsInType(visited, field.FieldType);
         }
 
         //----------------------------------------------------------------------

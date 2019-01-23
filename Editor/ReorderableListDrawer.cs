@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace UnityExtensions
@@ -12,6 +13,53 @@ namespace UnityExtensions
     [CustomPropertyDrawer(typeof(ReorderableListAttribute))]
     public class ReorderableListDrawer : ArrayDrawer
     {
+
+        public delegate void ElementDelegate(SerializedProperty array, int index);
+
+        public static event ElementDelegate onElementSelected;
+
+        public struct ElementSelectionScope : IDisposable
+        {
+            private readonly ElementDelegate m_callback;
+
+            public ElementSelectionScope(ElementDelegate callback)
+            {
+                m_callback = callback;
+                onElementSelected += m_callback;
+            }
+
+            public void Dispose()
+            {
+                onElementSelected -= m_callback;
+            }
+        }
+
+        //----------------------------------------------------------------------
+
+        public delegate void BackgroundColorDelegate(
+            SerializedProperty array,
+            int index,
+            ref Color backgroundColor);
+
+        public static event BackgroundColorDelegate onBackgroundColor;
+
+        public struct BackgroundColorScope : IDisposable
+        {
+            private readonly BackgroundColorDelegate m_callback;
+
+            public BackgroundColorScope(BackgroundColorDelegate callback)
+            {
+                m_callback = callback;
+                onBackgroundColor += m_callback;
+            }
+
+            public void Dispose()
+            {
+                onBackgroundColor -= m_callback;
+            }
+        }
+
+        //----------------------------------------------------------------------
 
         private static readonly ReorderableListAttribute
         s_DefaultAttribute = new ReorderableListAttribute();
@@ -34,13 +82,23 @@ namespace UnityExtensions
             SerializedProperty property,
             GUIContent label)
         {
-            var reorderableListOfValues = GetReorderableList(property);
+            var reorderableListOfValues =
+                GetReorderableList(
+                    attribute,
+                    fieldInfo,
+                    property);
 
             Debug.Assert(
                 reorderableListOfValues.serializedProperty.propertyPath ==
                 property.propertyPath);
 
-            return reorderableListOfValues.GetHeight(label);
+            try {
+                return reorderableListOfValues.GetHeight(label);
+            }
+            catch (Exception ex) {
+                Debug.LogException(ex);
+                return 0f;
+            }
         }
 
         public override void OnGUI(
@@ -48,9 +106,25 @@ namespace UnityExtensions
             SerializedProperty property,
             GUIContent label)
         {
-            var reorderableList = GetReorderableList(property);
-
+            var reorderableList =
+                GetReorderableList(
+                    attribute,
+                    fieldInfo,
+                    property);
+            reorderableList.onBackgroundColor = onBackgroundColor;
+            reorderableList.onSelectCallback += OnSelectCallback;
             reorderableList.DoGUI(position);
+            reorderableList.onSelectCallback -= OnSelectCallback;
+            reorderableList.onBackgroundColor = null;
+        }
+
+        //----------------------------------------------------------------------
+
+        private void OnSelectCallback(ReorderableList list)
+        {
+            var array = list.serializedProperty;
+            var index = list.index;
+            onElementSelected?.Invoke(array, index);
         }
 
         //----------------------------------------------------------------------
@@ -58,22 +132,12 @@ namespace UnityExtensions
         private class ReorderableListMap
         : Dictionary<string, ReorderableListOfValues>
         {
-
-            public void Add(
-                SerializedProperty property,
-                ReorderableListOfValues reorderableList)
-            {
-                var propertyPath = property.propertyPath;
-                base.Add(propertyPath, reorderableList);
-            }
-
-            public ReorderableListOfValues Find(string propertyPath)
+            public ReorderableListOfValues Find(string key)
             {
                 var reorderableList = default(ReorderableListOfValues);
-                base.TryGetValue(propertyPath, out reorderableList);
+                base.TryGetValue(key, out reorderableList);
                 return reorderableList;
             }
-
         }
 
         private readonly ReorderableListMap
@@ -86,7 +150,10 @@ namespace UnityExtensions
         m_MostRecentPropertyPath;
 
         private ReorderableListOfValues
-        GetReorderableList(SerializedProperty property)
+        GetReorderableList(
+            ReorderableListAttribute attribute,
+            FieldInfo fieldInfo,
+            SerializedProperty property)
         {
             var propertyPath = property.propertyPath;
 
@@ -105,23 +172,13 @@ namespace UnityExtensions
 
             if (m_MostRecentReorderableList == null)
             {
-                var reorderableList = CreateReorderableList(property);
+                var reorderableList =
+                    CreateReorderableList(
+                        attribute,
+                        fieldInfo,
+                        property);
 
-                var attribute = this.attribute;
-
-                reorderableList.displayAdd =
-                    false == attribute.disableAdding;
-
-                reorderableList.displayRemove =
-                    false == attribute.disableRemoving;
-
-                reorderableList.draggable =
-                    false == attribute.disableDragging;
-
-                reorderableList.elementHeaderFormat =
-                    attribute.elementHeaderFormat;
-
-                m_ReorderableListMap.Add(property, reorderableList);
+                m_ReorderableListMap.Add(propertyPath, reorderableList);
 
                 m_MostRecentReorderableList = reorderableList;
             }
@@ -136,7 +193,10 @@ namespace UnityExtensions
         }
 
         private ReorderableListOfValues
-        CreateReorderableList(SerializedProperty property)
+        CreateReorderableList(
+            ReorderableListAttribute attribute,
+            FieldInfo fieldInfo,
+            SerializedProperty property)
         {
             var listType = fieldInfo.FieldType;
 
@@ -165,6 +225,7 @@ namespace UnityExtensions
             {
                 return
                     new ReorderableListOfValues(
+                        attribute,
                         property,
                         listType,
                         elementType
@@ -198,6 +259,7 @@ namespace UnityExtensions
 
                     return
                         new ReorderableListOfSubassets(
+                            attribute,
                             property,
                             listType,
                             elementType,
@@ -208,6 +270,7 @@ namespace UnityExtensions
                 {
                     return
                         new ReorderableListOfValues(
+                            attribute,
                             property,
                             listType,
                             elementType
@@ -230,6 +293,7 @@ namespace UnityExtensions
                 {
                     return
                         new ReorderableListOfStructures(
+                            attribute,
                             property,
                             listType,
                             elementType
@@ -239,6 +303,7 @@ namespace UnityExtensions
 
             return
                 new ReorderableListOfValues(
+                    attribute,
                     property,
                     listType,
                     elementType

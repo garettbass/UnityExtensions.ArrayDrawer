@@ -18,7 +18,7 @@ namespace UnityExtensions.ArrayDrawerExamples
         //[ReorderableList]
         public SampleStruct[] structArray;
 
-        [ReorderableList(elementsAreSubassets: true)]
+        [ReorderableList(elementsAreSubassets = true)]
         public SampleSubasset[] subassetArray;
 
     }

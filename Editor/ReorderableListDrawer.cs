@@ -124,7 +124,8 @@ namespace UnityExtensions
         {
             var array = list.serializedProperty;
             var index = list.index;
-            onElementSelected?.Invoke(array, index);
+            if (onElementSelected != null)
+                onElementSelected.Invoke(array, index);
         }
 
         //----------------------------------------------------------------------

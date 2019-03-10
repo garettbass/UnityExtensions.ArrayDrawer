@@ -20,7 +20,10 @@ namespace UnityExtensions
     {
 
         private DateTime m_lastRendered = DateTime.MaxValue;
-        public DateTime lastRendered => m_lastRendered;
+        public DateTime lastRendered
+        {
+            get { return m_lastRendered; }
+        }
 
         private const float kIndentPerLevel = 15;
 
@@ -30,18 +33,23 @@ namespace UnityExtensions
 
         public string elementHeaderFormat;
 
-        public bool hasElementHeaderFormat =>
-            !string.IsNullOrWhiteSpace(elementHeaderFormat);
+        public bool hasElementHeaderFormat
+        {
+            get { return !(elementHeaderFormat == null || string.IsNullOrEmpty( elementHeaderFormat.Trim() )); }
+        }
 
         public string singularListHeaderFormat;
 
         public string pluralListHeaderFormat;
 
-        public virtual bool showElementHeader => false;
+        public virtual bool showElementHeader
+        {
+            get { return false; }
+        }
 
         public readonly bool showFooterButtons;
 
-        public readonly Color backgroundColor;
+        public Color backgroundColor;
 
         internal BackgroundColorDelegate onBackgroundColor;
 
@@ -221,7 +229,7 @@ namespace UnityExtensions
 
         public virtual void DoGUI(Rect position)
         {
-            m_onNextGUIFrame?.Invoke();
+            if ( m_onNextGUIFrame != null ) m_onNextGUIFrame.Invoke();
             m_onNextGUIFrame = null;
 
             if (!displayAdd && !displayRemove && !draggable)
@@ -399,7 +407,7 @@ namespace UnityExtensions
             var serializedProperty = this.serializedProperty;
             var serializedObject = serializedProperty.serializedObject;
             var targetObject = serializedObject.targetObject;
-            Undo.RecordObject(targetObject, $"Paste {clipboardElements[0].type}");
+            Undo.RecordObject(targetObject, string.Format( "Paste {0}", clipboardElements[ 0 ].type ) );
             foreach (var array in serializedProperties)
             {
                 if (elementIndex >= array.arraySize)
@@ -524,8 +532,8 @@ namespace UnityExtensions
                     ? GUI.backgroundColor
                     : this.backgroundColor;
 
-                onBackgroundColor
-                ?.Invoke(serializedProperty, elementIndex, ref backgroundColor);
+                if ( onBackgroundColor != null )
+                    onBackgroundColor.Invoke( serializedProperty, elementIndex, ref this.backgroundColor );
 
                 using (BackgroundColorScope(backgroundColor))
                 using (ColorAlphaScope(isActive ? 0.5f : 1))
@@ -546,9 +554,9 @@ namespace UnityExtensions
 
         //----------------------------------------------------------------------
 
-        public static readonly GUIContent CutLabel = new GUIContent($"Cut");
-        public static readonly GUIContent CopyLabel = new GUIContent($"Copy");
-        public static readonly GUIContent PasteLabel = new GUIContent($"Paste");
+        public static readonly GUIContent CutLabel = new GUIContent("Cut");
+        public static readonly GUIContent CopyLabel = new GUIContent("Copy");
+        public static readonly GUIContent PasteLabel = new GUIContent("Paste");
 
         protected virtual void PopulateElementContextMenu(
             GenericMenu menu,
@@ -570,9 +578,9 @@ namespace UnityExtensions
             if (displayAdd)
             {
                 menu.AddSeparator("");
-                menu.AddItem(new GUIContent($"Insert Above"), false, () =>
+                menu.AddItem(new GUIContent("Insert Above"), false, () =>
                     OnNextGUIFrame(() => InsertElement(elementIndex)));
-                menu.AddItem(new GUIContent($"Insert Below"), false, () =>
+                menu.AddItem(new GUIContent("Insert Below"), false, () =>
                     OnNextGUIFrame(() => InsertElement(elementIndex + 1)));
 
             }
@@ -582,7 +590,7 @@ namespace UnityExtensions
             }
             if (displayRemove)
             {
-                menu.AddItem(new GUIContent($"Remove"), false, () =>
+                menu.AddItem(new GUIContent("Remove"), false, () =>
                     OnNextGUIFrame(() => DeleteElement(elementIndex)));
             }
         }
@@ -644,17 +652,25 @@ namespace UnityExtensions
         protected static readonly GUIStyle
         ContextMenuButtonStyle = "Icon.TrackOptions";
 
-        protected GUIContent IconToolbarPlus =>
-            defaultBehaviours.iconToolbarPlus;
+        protected GUIContent IconToolbarPlus
+        {
+            get { return defaultBehaviours.iconToolbarPlus; }
+        }
 
-        protected GUIContent IconToolbarPlusMore =>
-            defaultBehaviours.iconToolbarPlusMore;
+        protected GUIContent IconToolbarPlusMore
+        {
+            get { return defaultBehaviours.iconToolbarPlusMore; }
+        }
 
-        protected GUIContent IconToolbarMinus =>
-            defaultBehaviours.iconToolbarMinus;
+        protected GUIContent IconToolbarMinus
+        {
+            get { return defaultBehaviours.iconToolbarMinus; }
+        }
 
-        protected GUIStyle PreButton =>
-            defaultBehaviours.preButton;
+        protected GUIStyle PreButton
+        {
+            get { return defaultBehaviours.preButton; }
+        }
 
         protected static void DrawHorizontalLine(Rect position)
         {
@@ -717,7 +733,7 @@ namespace UnityExtensions
 
         private void DrawAddButton(Rect position)
         {
-            var canAdd = onCanAddCallback?.Invoke(this) ?? true;
+            var canAdd = onCanAddCallback == null || onCanAddCallback(this);
             var disabled = !canAdd;
             using (new EditorGUI.DisabledScope(disabled))
             {
@@ -732,7 +748,8 @@ namespace UnityExtensions
                         onAddDropdownCallback(position, this);
                     else if (onAddCallback != null)
                         onAddCallback(this);
-                    onChangedCallback?.Invoke(this);
+                    if ( onChangedCallback != null ) 
+                        onChangedCallback.Invoke( this );
                 }
             }
         }
@@ -742,7 +759,7 @@ namespace UnityExtensions
             var disabled = index < 0 || index > count;
             if (disabled == false)
             {
-                var canRemove = onCanRemoveCallback?.Invoke(this) ?? true;
+                var canRemove = onCanRemoveCallback == null || onCanRemoveCallback(this);
                 disabled |= !canRemove;
             }
             using (new EditorGUI.DisabledScope(disabled))
@@ -751,8 +768,10 @@ namespace UnityExtensions
                 var content = IconToolbarMinus;
                 if (GUI.Button(position, content, style))
                 {
-                    onRemoveCallback?.Invoke(this);
-                    onChangedCallback?.Invoke(this);
+                    if ( onRemoveCallback != null ) 
+                        onRemoveCallback.Invoke( this );
+                    if ( onChangedCallback != null ) 
+                        onChangedCallback.Invoke( this );
                 }
             }
         }

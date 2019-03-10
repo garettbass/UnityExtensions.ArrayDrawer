@@ -111,7 +111,7 @@ namespace UnityExtensions
 
         private static Exception FieldNotFoundException(Type type, string fieldName)
         {
-            return new KeyNotFoundException($"{type}.{fieldName} not found");
+            return new KeyNotFoundException( string.Format( "{0}.{1} not found", type, fieldName ) );
         }
 
         //----------------------------------------------------------------------

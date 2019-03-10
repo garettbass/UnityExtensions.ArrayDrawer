@@ -34,9 +34,12 @@ namespace UnityExtensions
             if (!string.IsNullOrEmpty(assetPath))
                 return assetPath;
 
-            var gameObject =
-                (asset as GameObject) ??
-                (asset as Component)?.gameObject;
+            GameObject gameObject = null;
+            if ( asset is GameObject )
+                gameObject = (GameObject) asset;
+            else if ( asset is Component )
+                gameObject = ((Component) asset).gameObject;
+
             if (gameObject != null)
                 return gameObject.scene.path;
 

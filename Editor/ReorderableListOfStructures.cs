@@ -15,7 +15,10 @@ namespace UnityExtensions
     internal class ReorderableListOfStructures : ReorderableListOfValues
     {
 
-        public override bool showElementHeader => hasElementHeaderFormat;
+        public override bool showElementHeader
+        {
+            get { return hasElementHeaderFormat; }
+        }
 
         protected float idealLabelWidth;
 

@@ -20,17 +20,26 @@ namespace UnityExtensions
 
         private readonly Type[] m_SubassetTypes;
 
-        public bool hasSingleSubassetType =>
-            m_SubassetTypes.Length == 1;
+        public bool hasSingleSubassetType
+        {
+            get { return m_SubassetTypes.Length == 1; }
+        }
 
-        public bool hasMultipleSubassetTypes =>
-            m_SubassetTypes.Length > 1;
+        public bool hasMultipleSubassetTypes
+        {
+            get { return m_SubassetTypes.Length > 1; }
+        }
 
         private readonly bool m_UseFullSubassetTypeNames;
 
-        public override bool showElementHeader =>
-            base.showElementHeader ||
-            hasMultipleSubassetTypes;
+        public override bool showElementHeader
+        {
+            get
+            {
+                return base.showElementHeader ||
+                       hasMultipleSubassetTypes;
+            }
+        }
 
         //----------------------------------------------------------------------
 
@@ -132,7 +141,7 @@ namespace UnityExtensions
             Object subasset,
             bool isActive)
         {
-            var subassetType = subasset?.GetType() ?? typeof(Object);
+            var subassetType = subasset != null ? subasset.GetType() : typeof(Object);
             position.height = headerHeight;
 
             var titleContent = m_TitleContent;

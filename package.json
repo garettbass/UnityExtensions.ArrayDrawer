@@ -1,0 +1,7 @@
+{
+    "name": "net.unity-extensions.array-drawer",
+    "displayName": "Array Drawer",
+    "version": "0.0.1-preview",
+    "unity": "2019.1",
+    "description": "ArrayDrawer is a base class like PropertyDrawer, but for arrays and lists."
+}

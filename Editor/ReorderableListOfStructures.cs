@@ -130,10 +130,9 @@ namespace UnityExtensions
             var titleContent = m_TitleContent;
 
             titleContent.text =
-                string.Format(
-                    elementHeaderFormat,
-                    elementIndex
-                );
+                hasElementHeaderFormat
+                ? string.Format(elementHeaderFormat, elementIndex)
+                : elementIndex.ToString();
 
             var titleStyle = EditorStyles.boldLabel;
 

@@ -35,7 +35,10 @@ namespace UnityExtensions
 
         public bool hasElementHeaderFormat
         {
-            get { return !(elementHeaderFormat == null || string.IsNullOrEmpty( elementHeaderFormat.Trim() )); }
+            get
+            {
+                return elementHeaderFormat != null;
+            }
         }
 
         public string singularListHeaderFormat;
@@ -140,10 +143,11 @@ namespace UnityExtensions
 
             try
             {
-                var primaryArray = serializedProperty;
-                foreach (var array in serializedProperties)
-                    if (array != primaryArray)
-                        array.MoveArrayElement(dragIndex, dropIndex);
+                for (int i = 1; i < serializedProperties.Length; ++i)
+                {
+                    var array = serializedProperties[i];
+                    array.MoveArrayElement(dragIndex, dropIndex);
+                }
             }
             catch (Exception ex)
             {

@@ -1,0 +1,19 @@
+{
+  "name": "com.garettbass.unityextensions.arraydrawer",
+  "version": "1.0.0",
+  "displayName": "Array Drawer",
+  "description": "ArrayDrawer is a base class like PropertyDrawer, but for arrays and lists.",
+  "unity": "2018.1",
+  "keywords": [
+    "Editor",
+    "Array",
+    "List",
+    "Inspector",
+    "PropertyDrawer"
+  ],
+  "author": {
+    "name": "Garett Bass",
+    "email": "garettbass@me.com",
+    "url": "garettbass.com"
+  }
+}

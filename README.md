@@ -4,7 +4,22 @@
 
 ## Installation
 
-Just clone this repo somewhere inside your Unity project's `Assets` folder.
+### Option 1: Via Unity Package Manager
+
+Add an entry to your project's `Packages/manifest.json` dependencies list using the package name "com.garettbass.unityextensions.arraydrawer"; e.g.:
+```json
+{
+  "dependencies": {
+    "com.garettbass.unityextensions.arraydrawer": "https://github.com/garettbass/UnityExtensions.ArrayDrawer.git"
+  }
+}
+```
+
+Alternatively, clone the project somewhere on your machine and add it as a [local package](https://docs.unity3d.com/Manual/upm-localpath.html).
+
+### Option 2: Manually
+
+Just clone this repo somewhere inside your Unity project's `Assets` or `Packages` folders.
 
 ## `ArrayDrawer`
 

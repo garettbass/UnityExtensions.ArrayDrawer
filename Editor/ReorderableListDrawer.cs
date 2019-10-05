@@ -111,6 +111,7 @@ namespace UnityExtensions
                     attribute,
                     fieldInfo,
                     property);
+            reorderableList.UpdateLabel(label);
             reorderableList.onBackgroundColor = onBackgroundColor;
             reorderableList.onSelectCallback += OnSelectCallback;
             reorderableList.DoGUI(position);

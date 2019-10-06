@@ -153,6 +153,7 @@ namespace UnityExtensions
             {
                 Debug.LogException(ex);
             }
+            GUI.changed = true;
         }
 
         //----------------------------------------------------------------------
@@ -784,7 +785,7 @@ namespace UnityExtensions
 
         private GUIContent m_Label = new GUIContent();
 
-        private void UpdateLabel(GUIContent label)
+        internal void UpdateLabel(GUIContent label)
         {
             m_Label.image = label.image;
 

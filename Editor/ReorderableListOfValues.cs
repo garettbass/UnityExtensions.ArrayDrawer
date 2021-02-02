@@ -644,7 +644,7 @@ namespace UnityExtensions
             EditorGUI.PropertyField(
                 position,
                 property,
-                label,
+                new GUIContent(),
                 includeChildren: true
             );
         }

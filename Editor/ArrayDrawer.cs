@@ -146,13 +146,13 @@ namespace UnityExtensions
             (HasVisibleChildFieldsDelegate)
             Delegate.CreateDelegate(
                 typeof(HasVisibleChildFieldsDelegate),
-                null,
                 typeof(EditorGUI)
                 .GetMethod(
                     "HasVisibleChildFields",
                     BindingFlags.NonPublic |
                     BindingFlags.Static
-                )
+                ),
+                false
             );
 
         protected static bool HasVisibleChildFields(
